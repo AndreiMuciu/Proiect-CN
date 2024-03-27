@@ -27,7 +27,7 @@ module FAC(
   output cout
 );
 assign sum = A ^ B ^ cin;
-assign cout = (A & B) | (cin & (A ^ B));
+assign cout = (A & B) | (A & cin) | (B & cin);
 
 endmodule
 
@@ -65,7 +65,7 @@ module FAC_Star(
   );
   
   assign sum = A ^ B ^ cin;
-  assign cout = (A & B) | (cin & (A ^ B));
+  assign cout = (A & B) | (A & cin) | (B & cin);
   assign pi =A ^ B;
   
 endmodule
@@ -165,6 +165,7 @@ FAC FAC22(.A(X3[33]), .B(Y3[33]), .cin(auxcout2), .sum(sum3[33]), .cout(cout3));
 //puneti restu de biti la sum [32:66] ,cu : duplicati ultimu bit din x(MSB) si ult bit din y(MSB) de inca 35 de ori si faceti suma cu utlimul carry(cout) si rezultatul punet il in sum[32:66] 
 //in modu asta se va pastra semnul rezulatului ,verificati pe foaie sa vedeti ;)
 //incercati sa o testati
+
 endmodule
   
   
