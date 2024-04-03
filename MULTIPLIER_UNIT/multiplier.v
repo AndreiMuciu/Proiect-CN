@@ -187,7 +187,7 @@ localparam s13=13;
 localparam s14=14;
 
 reg [14:0] cst;
-wire [14:0] nxst;
+wire [14:0] nxst=15'd0;
 
 assign nxst[s0]=(cst[s13])|(cst[s0]&(~START));
 assign nxst[s1]=(cst[s0]&START);
@@ -215,10 +215,10 @@ assign nxst[s13]=cst[s12] & (cnt[0]&cnt[1]&cnt[2]&cnt[3]);
 assign nxst[s14]=(~nxst[s13]);
 
 
-assign cSig={8{1'd0}};
+assign cSig=8'd0;
+
 assign cSig[7]= (cst[s4]) | (cst[s5]) | (cst[s6]) | (cst[s7]) | 
-                 (cst[s8]) | (cst[s9]) | (cst[s10]) | (cst[s11]) | 
-                 (cst[s3] & ( (w&x&y&z) | ((~w)&(~x)&(~y)&(~z)) ));
+                 (cst[s8]) | (cst[s9]) | (cst[s10]) | (cst[s11]);
 assign cSig[0]=cst[s1];
 assign cSig[1]=cst[s2];
 
@@ -231,6 +231,7 @@ assign cSig[5]=cst[s4]|cst[s5]|cst[s6]|cst[s7]|cst[s8]|cst[s9]|cst[s11]|
 assign cSig[6]=cst[s13];
 
 always @(posedge clk,negedge rst_b) begin
+//$display("q = %b", cst);
 if(!rst_b)begin
 cst<=0;
 cst[s0]<=1;
@@ -247,8 +248,8 @@ module obtain(
   output [33:0] twoM,fourM,threeM
 );
 wire cout,cout2,cout3;
-reg [66:0] sum;
-reg [32:0] sum2;
+wire [66:0] sum;
+wire [32:0] sum2;
 
 genvar i;
 generate
@@ -338,10 +339,10 @@ module operations(
     input [2:0] cSig,
     output reg [33:0] newa
 );
-    reg [33:0] twoM, threeM, fourM,aux;
+    wire [33:0] twoM, threeM, fourM,aux,sum3;
     wire cout, cout2, cout3;
-    reg [31:0] sum;
-    reg [32:0] sum2;
+    wire [66:0] sum;
+    wire [32:0] sum2;
 
     obtain inst (
         .originalM(m),
@@ -363,16 +364,20 @@ module operations(
                     .cout3(cout3),
                     .sum(sum),
                     .sum2(sum2),
-                    .sum3(newa)
+                    .sum3(sum3)
                 );
+             
                 
-mux2to1A selectFinal(.data_in0(a), .data_in1(newa), .select(c7), .data_out(newa));
+mux2to1A selectFinal(.data_in0(a), .data_in1(sum3), .select(c7), .data_out(sum3));
+always @(posedge clk) begin
+    newa <= sum3;
+end   
 endmodule
 
 //===========================================================================================
 
 module lshift(
-input c7,
+input c5,
 input [33:0] a,
 input [32:0] q,
 input qNeg,
@@ -394,9 +399,9 @@ generate
     assign qOUT[i] = q[i+3];
   end
 endgenerate
-mux2to1A inst1(.data_in0(a), .data_in1(aOUT), .select(c7), .data_out(aOUT));
-mux2to1B inst2(.data_in0(q), .data_in1(qOUT), .select(c7), .data_out(qOUT));
-assign qNegOUT=(c7&q[2])|(~c7&qNeg);
+mux2to1A inst1(.data_in0(a), .data_in1(aOUT), .select(c5), .data_out(aOUT));
+mux2to1B inst2(.data_in0(q), .data_in1(qOUT), .select(c5), .data_out(qOUT));
+assign qNegOUT=(c5&q[2])|(~c5&qNeg);
 endmodule
 
 //===========================================================================================
@@ -413,17 +418,15 @@ module counter (
 always @(posedge clk,negedge rst) begin
     if (!rst) begin
         // Reset the counter to 0 when rst is asserted (active low)
-        count_reg <= 4'b0;
+        count <= 4'd0;
     end else if (clr) begin
         // Clear the counter to 0 when clr is asserted
-        count_reg <= 4'b0;
+        count <= 4'd0;
     end else if (c_up) begin
         // Increment the counter if count up is enabled
-        count_reg <= count_reg + 1;
+        count <= count_reg + 1;
     end
 end
-// Output the counter value
-assign count = count_reg;
 endmodule
 
 //===========================================================================================
@@ -434,15 +437,15 @@ module algorithm(
   input [32:0] q,
   input qNeg,
   input [3:0] cnt,
-  input [7:0] cSig,
+  input [8:0] cSig,
   output [33:0] newa,
   output [32:0] newq,
   output newqNeg,
   output [3:0] newcnt 
 );
      operations op(.m(m), .clk(clk), .a(a), .cSig({cSig[2],cSig[3],cSig[4]}), .newa(newa), .c7(cSig[7]));
-     lshift inst(.a(a), .q(q), .qNeg(qNeg), .aOUT(newa), .qOUT(newq), .qNegOUT(newqNeg), .c7(cSig[7]));
-     counter inst0(.clk(clk), .c_up(cSig[7]), .rst_b(1'b1), .clr(cSig[0]), .count_reg(cnt), .count(new_cnt));
+     lshift inst(.a(a), .q(q), .qNeg(qNeg), .aOUT(newa), .qOUT(newq), .qNegOUT(newqNeg), .c5(cSig[5]));
+     counter inst0(.clk(clk), .c_up(cSig[5]), .rst(1'b1), .clr(cSig[0]), .count_reg(cnt), .count(newcnt));
 endmodule
 
 //===========================================================================================
@@ -451,23 +454,54 @@ module multiplier(
 input [31:0] X,Y,
 input clk,
 input active,//formula lui OP
-output [66:0] product
+output reg [66:0] product
 );
 
 reg [33:0] a;
 reg [32:0] q;
-reg qNeg;
 reg [33:0] m;
-reg [7:0] cSig;
 reg [3:0] counter;
+reg activeREG;
 
-assign q={X[31],X};
-assign m={{2{Y[31]}},Y};
+wire qNeg;
+wire [7:0] cSig;
+wire [33:0] aAux;
+wire [32:0] qAux;
+wire [33:0] mAux;
+wire [3:0] counterAux;
+wire activeAux;
 
-controlUnit reff(.clk(clk), .rst_b(1'b1), .START(active), .cnt(counter), .w(q[2]), .x(q[1]), .y(q[0]), .z(qNeg), .cSig(cSig));
-algorithm reff2(.m(m), .clk(clk), .a(a), .q(q), .qNeg(qNeg), .cnt(counter), .cSig(cSig), .newa(a), .newq(q), .newqNeg(qNeg), .newcnt(counter));
-assign active=~cSig[6];
-assign product={a,q};
+reg rst=0,sec=0;
+
+always @(posedge clk) begin
+    if(!rst) begin
+    a <= 34'd0;
+    counter <= 4'd0;
+    q <= {X[31], X};
+    m <= {{2{Y[31]}}, Y};
+    activeREG <= active; 
+    end
+    //$display("q = %b %b" , q,rst);
+end
+assign activeAux=activeREG;
+assign aAux=a;
+assign qAux=q;
+assign mAux=m;
+assign counterAux=counter;
+
+controlUnit reff1(.clk(clk), .rst_b(sec), .START(activeAux), .cnt(counterAux), .w(qAux[2]), .x(qAux[1]), .y(qAux[0]), .z(qNeg), .cSig(cSig));
+//algorithm reff2(.m(mAux), .clk(clk), .a(aAux), .q(qAux), .qNeg(qNeg), .cnt(counterAux), .cSig(cSig), .newa(aAux), .newq(qAux), .newqNeg(qNeg), .newcnt(counterAux));
+
+
+always @(posedge clk) begin
+    a <= aAux;
+    q <= qAux;
+    counter <= counterAux;
+    if(cSig[6])activeREG=1'b0;
+    product <= {a,q};
+    rst <=sec;$display("cSig=%b rst=%b %b",cSig,rst,q);
+    sec=1;
+end
 endmodule
 
 
@@ -492,7 +526,7 @@ module multiplier_tb;
     Y = 32'd3; // Example input value
     enable=1'b1;
     // Wait some time
-    #10;
+    #1310;
 
     // End simulation
     $finish;
@@ -506,38 +540,3 @@ initial begin
 end
   
 endmodule
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
