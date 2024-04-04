@@ -462,6 +462,7 @@ reg [32:0] q;
 reg [33:0] m;
 reg [3:0] counter;
 reg activeREG;
+reg [7:0] cSigREG;
 
 wire qNeg;
 wire [7:0] cSig;
@@ -475,6 +476,7 @@ reg rst=0,sec=0;
 
 always @(posedge clk) begin
     if(!rst) begin
+    cSigREG <= 8'd0;
     a <= 34'd0;
     counter <= 4'd0;
     q <= {X[31], X};
@@ -488,6 +490,7 @@ assign aAux=a;
 assign qAux=q;
 assign mAux=m;
 assign counterAux=counter;
+assign cSig=cSigREG;
 
 controlUnit reff1(.clk(clk), .rst_b(sec), .START(activeAux), .cnt(counterAux), .w(qAux[2]), .x(qAux[1]), .y(qAux[0]), .z(qNeg), .cSig(cSig));
 //algorithm reff2(.m(mAux), .clk(clk), .a(aAux), .q(qAux), .qNeg(qNeg), .cnt(counterAux), .cSig(cSig), .newa(aAux), .newq(qAux), .newqNeg(qNeg), .newcnt(counterAux));
@@ -501,6 +504,7 @@ always @(posedge clk) begin
     product <= {a,q};
     rst <=sec;$display("cSig=%b rst=%b %b",cSig,rst,q);
     sec=1;
+    cSigREG <=cSig;
 end
 endmodule
 
