@@ -164,77 +164,133 @@ endmodule
 
 
 module controlUnit(
-input clk,rst_b,
-input START,
-input [3:0] cnt,
-input w,x,y,z,
-output [7:0] cSig
+input wire clk,rst_b,
+input wire START,
+input wire [3:0] cnt,
+input wire w,x,y,z,
+output wire [7:0] cSig
 );
-localparam s0=0;
-localparam s1=1;
-localparam s2=2;
-localparam s3=3;
-localparam s4=4;
-localparam s5=5;
-localparam s6=6;
-localparam s7=7;
-localparam s8=8;
-localparam s9=9;
-localparam s10=10;
-localparam s11=11;
-localparam s12=12;
-localparam s13=13;
-localparam s14=14;
+localparam s0 = 1;
+localparam s1 = 2;
+localparam s2 = 4;
+localparam s3 = 8;
+localparam s4 = 16;
+localparam s5 = 32;
+localparam s6 = 64;
+localparam s7 = 128;
+localparam s8 = 256;
+localparam s9 = 512;
+localparam s10 = 1024;
+localparam s11 = 2048;
+localparam s12 = 4096;
+localparam s13 = 8192;
 
 reg [14:0] cst;
-wire [14:0] nxst=15'd0;
+wire [14:0] nxst;
 
-assign nxst[s0]=(cst[s13])|(cst[s0]&(~START));
-assign nxst[s1]=(cst[s0]&START);
-assign nxst[s2]=(cst[s1]);
-assign nxst[s3]=cst[s2]|cst[s14];
+always @* begin
+case(cst)
+s0:begin
+if(START==1'b1)
+nxst=s1;
+else
+nxst=s0;
+end
 
-assign nxst[s4]=(cst[s3]&( ((~w)&(~x)&(~y)&(z)) | ((~w)&(~x)&(y)&(~z)) ));
-assign nxst[s5]=(cst[s3]&( ((w)&(x)&(~y)&(z)) | ((w)&(x)&(y)&(~z)) ));
+s1:begin
+nxst=s2;
+end
 
-assign nxst[s6]=(cst[s3]&( ((~w)&(~x)&(y)&(z)) | ((~w)&(x)&(~y)&(~z)) ));
-assign nxst[s7]=(cst[s3]&( ((w)&(x)&(~y)&(~z)) | ((w)&(~x)&(y)&(z)) ));
+s2:begin
+nxst=s3;
+end
 
-assign nxst[s8]=(cst[s3]&( ((~w)&(x)&(~y)&(z)) | ((~w)&(x)&(y)&(~z)) ));
-assign nxst[s9]=(cst[s3]&( ((w)&(~x)&(~y)&(z)) | ((w)&(~x)&(y)&(~z)) ));
+s3:begin
+if( ((w)&(x)&(y)&(z)) | ((~w)&(~x)&(~y)&(~z)) )//0
+nxst=s12;
+else
+if( ((~w)&(~x)&(~y)&(z)) | ((~w)&(~x)&(y)&(~z)) )//1
+nxst=s4;
+else
+if( ((w)&(x)&(~y)&(z)) | ((w)&(x)&(y)&(~z)) )//-1
+nxst=s5;
+else
+if( ((~w)&(~x)&(y)&(z)) | ((~w)&(x)&(~y)&(~z)) )//2
+nxst=s6;
+else
+if( ((w)&(x)&(~y)&(~z)) | ((w)&(~x)&(y)&(z)) )//-2
+nxst=s7;
+else
+if( ((~w)&(x)&(~y)&(z)) | ((~w)&(x)&(y)&(~z)) )//3
+nxst=s8;
+else
+if( ((w)&(~x)&(~y)&(z)) | ((w)&(~x)&(y)&(~z)) )//-3
+nxst=s9;
+else
+if((~w)&(x)&(y)&(z))//4
+nxst=s10;
+else
+if((w)&(~x)&(~y)&(~z))//-4
+nxst=s11;
+end
 
-assign nxst[s10]=(cst[s3]&( ((~w)&(x)&(y)&(z))));
-assign nxst[s11]=(cst[s3]&( ((w)&(~x)&(~y)&(~z))));
+s4:begin
+nxst=s12;
+end
+s5:begin
+nxst=s12;
+end
+s6:begin
+nxst=s12;
+end
+s7:begin
+nxst=s12;
+end
+s8:begin
+nxst=s12;
+end
+s9:begin
+nxst=s12;
+end
+s10:begin
+nxst=s12;
+end
+s11:begin
+nxst=s12;
+end
 
+s12:begin
+if(cnt[0]&cnt[1]&cnt[2]&cnt[3])
+nxst=s13;
+else
+nxst=s3
+end
 
-assign nxst[s12]= (cst[s3] & ( ((w)&(x)&(y)&(z)) | ((~w)&(~x)&(~y)&(~z)) )) |
-                 (cst[s4]) | (cst[s5]) | (cst[s6]) | (cst[s7]) | 
-                 (cst[s8]) | (cst[s9]) | (cst[s10]) | (cst[s11]) ;
-                 
-assign nxst[s13]=cst[s12] & (cnt[0]&cnt[1]&cnt[2]&cnt[3]);
-assign nxst[s14]=(~nxst[s13]);
+s13:begin
+nxst=s0;
+end
+endcase
+end
 
-
-assign cSig=8'd0;
-
-assign cSig[7]= (cst[s4]) | (cst[s5]) | (cst[s6]) | (cst[s7]) | 
-                 (cst[s8]) | (cst[s9]) | (cst[s10]) | (cst[s11]);
-assign cSig[0]=cst[s1];
-assign cSig[1]=cst[s2];
-
-assign cSig[2]=cst[s5]|cst[s7]|cst[s9]|cst[s11];
-assign cSig[3]=cst[s10]|cst[s8]|cst[s9]|cst[s11];
-assign cSig[4]=cst[s6]|cst[s7]|cst[s10]|cst[s11];
-
-assign cSig[5]=cst[s4]|cst[s5]|cst[s6]|cst[s7]|cst[s8]|cst[s9]|cst[s11]|
-               (cst[s3] & ( ((w)&(x)&(y)&(z)) | ((~w)&(~x)&(~y)&(~z)) ));
-assign cSig[6]=cst[s13];
+always @* begin
+    case (cst)
+        s1:cSig=8'd1;
+        s2:cSig=8'd2;
+        s5:cSig=8'd4;
+        s6:cSig=8'd16;
+        s7:cSig=8'd20;
+        s8:cSig=8'd8;
+        s9:cSig=8'd12;
+        s10:cSig=8'd24;
+        s11:cSig=8'd28;
+        default: cSig=8'd0;
+    endcase
+end
 
 always @(posedge clk,negedge rst_b) begin
 //$display("q = %b", cst);
 if(!rst_b)begin
-cst<=0;
-cst[s0]<=1;
+cst<=s0;
 end
 else
 cst<=nxst;       
@@ -458,59 +514,51 @@ output reg [66:0] product
 );
 
 reg [33:0] a;
-reg [32:0] q;
+reg [32:0] q;reg qNegREG;
 reg [33:0] m;
 reg [3:0] counter;
 reg activeREG;
-reg [7:0] cSigREG;
 
-wire qNeg;
-wire [7:0] cSig;
 wire [33:0] aAux;
-wire [32:0] qAux;
+wire [32:0] qAux;wire qNeg;
 wire [33:0] mAux;
 wire [3:0] counterAux;
-wire activeAux;
+wire [7:0] cSig;
 
 reg rst=0,sec=0;
 
 always @(posedge clk) begin
     if(!rst) begin
-    cSigREG <= 8'd0;
     a <= 34'd0;
     counter <= 4'd0;
-    q <= {X[31], X};
+    q <= {X[31], X};qNegREG=0;
     m <= {{2{Y[31]}}, Y};
-    activeREG <= active; 
+     activeREG <= active; 
     end
+    
     //$display("q = %b %b" , q,rst);
 end
-assign activeAux=activeREG;
+
 assign aAux=a;
-assign qAux=q;
+assign qAux=q;assign qNeg=qNegREG;
 assign mAux=m;
 assign counterAux=counter;
-assign cSig=cSigREG;
 
-controlUnit reff1(.clk(clk), .rst_b(sec), .START(activeAux), .cnt(counterAux), .w(qAux[2]), .x(qAux[1]), .y(qAux[0]), .z(qNeg), .cSig(cSig));
+controlUnit reff1(.clk(clk), .rst_b(rst), .START(activeREG), .cnt(counterAux), .w(qAux[2]), .x(qAux[1]), .y(qAux[0]), .z(qNeg), .cSig(cSig));
 //algorithm reff2(.m(mAux), .clk(clk), .a(aAux), .q(qAux), .qNeg(qNeg), .cnt(counterAux), .cSig(cSig), .newa(aAux), .newq(qAux), .newqNeg(qNeg), .newcnt(counterAux));
 
 
 always @(posedge clk) begin
+$display("rst=%b activeREG=%b cSig=%b q=%b ",rst,activeREG,cSig,qAux);
     a <= aAux;
-    q <= qAux;
+    q <= qAux;qNegREG<=qNeg;
     counter <= counterAux;
-    if(cSig[6])activeREG=1'b0;
+    if(cSig[6])activeREG=0;
     product <= {a,q};
-    rst <=sec;$display("cSig=%b rst=%b %b",cSig,rst,q);
+    rst=sec;
     sec=1;
-    cSigREG <=cSig;
 end
 endmodule
-
-
-
-
 
 module multiplier_tb;
   
