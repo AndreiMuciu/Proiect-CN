@@ -296,22 +296,21 @@ cst<=nxst;
 end
 endmodule
 
-
 module obtain(
   input [33:0] originalM,
-  output reg [33:0] twoMREG,fourMREG,threeMREG
+  output reg [33:0] twoM,fourM,threeM
 );
 wire cout,cout2,cout3;
 wire [66:0] sum;
 wire [32:0] sum2;
-wire [33:0] twoM,fourM,threeM;
-assign twoM=34'd0;assign fourM=34'd0;assign threeM=34'd0;
-genvar i;
-generate
-  for (i = 1; i < 34; i = i + 1) begin : shift_twoM
-      assign twoM[i] = originalM[i-1];
-  end
-endgenerate
+wire [33:0] threeMR;
+assign threeMR=34'd0;
+
+always @* begin
+twoM=originalM<<1;
+fourM=originalM<<2;
+end
+
 CSkA CSkA_inst2 (
     .X(32'b0),          // Set X to zero, unused
     .Y(32'b0),          // Set Y to zero, unused
@@ -325,16 +324,10 @@ CSkA CSkA_inst2 (
     .cout3(cout3),
     .sum(sum),
     .sum2(sum2),
-    .sum3(threeM)
+    .sum3(threeMR)
 );
-genvar j;
-generate
-  for (j = 1; j < 34; j = j + 1) begin : shift_fourM
-    assign fourM[j] = twoM[j-1];
-  end
-endgenerate
 always @* begin
-twoMREG=twoM;threeMREG=threeM;fourMREG=fourM;
+threeM=threeMR;
 end
 endmodule
 
@@ -410,12 +403,12 @@ module operations(
 
     obtain inst (
         .originalM(m),
-        .twoMREG(twoM),
-        .threeMREG(threeM),
-        .fourMREG(fourM)
+        .twoM(twoM),
+        .threeM(threeM),
+        .fourM(fourM)
     );
-    mux4to1 inst1(.data_in0(m), .data_in1(twoM), .data_in2(threeM), .data_in3(fourM), .select({cSig[1],cSig[2]}), .data_out(aux));
-         CSkA CSkA_inst1 (
+    //mux4to1 inst1(.data_in0(m), .data_in1(twoM), .data_in2(threeM), .data_in3(fourM), .select({cSig[1],cSig[2]}), .data_out(aux));
+      /*   CSkA CSkA_inst1 (
                     .X(32'b0),
                     .Y(32'b0),
                     .X2(33'b0),
@@ -430,8 +423,9 @@ module operations(
                     .sum2(sum2),
                     .sum3(sum3)
                 );
-mux2to1A selectFinal(.data_in0(a), .data_in1(sum3), .select(c7), .data_out(sum3));
+mux2to1A selectFinal(.data_in0(a), .data_in1(sum3), .select(c7), .data_out(sum3));*/
 always @* begin
+$display("%b",threeM);
     newa <= sum3;
 end   
 endmodule
@@ -511,13 +505,13 @@ module algorithm(
   output reg newqNeg,
   output reg [3:0] newcnt 
 );
-  wire [33:0] newaR=34'd0;
-  wire [32:0] newqR=33'd0;
-  wire newqNegR=0;
-  wire [3:0] newcntR=4'd0;
+  wire [33:0] newaR;
+  wire [32:0] newqR;
+  wire newqNegR;
+  wire [3:0] newcntR;
   
      operations op(.m(m), .a(a), .cSig({cSig[2],cSig[3],cSig[4]}), .newa(newaR), .c7(cSig[7]));
-     lshift inst(.a(a), .q(q), .qNeg(qNeg), .aOUT(newaR), .qOUT(newqR), .qNegOUT(newqNegR), .c5(cSig[5]));
+     //lshift inst(.a(a), .q(q), .qNeg(qNeg), .aOUT(newaR), .qOUT(newqR), .qNegOUT(newqNegR), .c5(cSig[5]));
      counter inst0(.clk(clk), .c_up(cSig[5]), .rst(1'b1), .clr(cSig[0]), .count_reg(cnt), .count(newcntR));
      
 always @(posedge clk) begin
@@ -569,7 +563,7 @@ algorithm reff2(.m(m), .clk(clk), .a(a), .q(q),
 
 
 always @(posedge clk) begin
-$display("rst=%b | activeREG=%b | cSig=%b | counterAux=%b q=%b",rst,activeREG,cSig,counterAux,q);
+//$display("rst=%b | activeREG=%b | cSig=%b | counterAux=%b q=%b",rst,activeREG,cSig,counterAux,a);
     a <= aAux;
     q <= qAux;qNegREG<=qNeg;
     counter <= counterAux;
@@ -593,7 +587,7 @@ module multiplier_tb;
   // Stimulus
   initial begin
     // Initialize inputs
-    $monitor("product = %b", product);
+    //$monitor("product = %b", product);
     X = 32'd2; // Example input value
     Y = 32'd3; // Example input value
     enable=1'b1;
