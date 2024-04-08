@@ -427,12 +427,14 @@ assign aOUTR=a>>3;
 assign qOUTR=q>>3;
 
 mux2to1A inst1(.data_in0(a), .data_in1(aOUTR), .select(c5), .data_out(aux1));
-mux2to1B inst2(.data_in0(q), .data_in1(qOUTR), .select(c5), .data_out(aux2));   
+mux2to1B inst2(.data_in0(q), .data_in1(qOUTR), .select(c5), .data_out(aux2));
+
 always @* begin
-aOUT=aux1;qOUT=aux2;
+aOUT=aux1;qOUT=aux2;qNegOUT=(c5&q[2])|(~c5&qNeg);
+if(c5)begin
 aOUT[33:31]={a[33], a[33], a[33]};
 qOUT[32:30]={a[2], a[1], a[0]}; 
-qNegOUT=(c5&q[2])|(~c5&qNeg);
+end
 end
 endmodule
 
@@ -497,7 +499,7 @@ lshift inst(.a(aAux), .clk(clk), .q(q), .qNeg(qNegREG), .aOUT(aAux2), .qOUT(qAux
 counter inst0(.clk(clk), .c_up(cSig[5]), .rst(rst), .clr(cSig[0]), .count_reg(counter), .count(counterAux));
 
 always @(posedge clk) begin
-$display("rst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b\n\n",rst,activeREG,cSig,counterAux,aAux2,qAux);
+//$display("rst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b\n\n",rst,activeREG,cSig,counterAux,aAux2,qAux);
     a <= aAux2;
     q <= qAux;qNegREG<=qNeg;
     counter <= counterAux;
@@ -507,6 +509,8 @@ $display("rst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b\n\n",rst,acti
     sec=1;
 end
 endmodule
+
+
 
 module multiplier_tb;
   
@@ -521,7 +525,9 @@ module multiplier_tb;
   // Stimulus
   initial begin
     // Initialize inputs
-    //$monitor("product = %b", product);
+    $monitor("product = %b", product);
+    //x 0 0 0 0100 1000
+    //y 0 0 0 0101 1001
     X = 32'd72; // Example input value
     Y = 32'd89; // Example input value
     enable=1'b1;
