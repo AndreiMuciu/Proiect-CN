@@ -433,7 +433,7 @@ rshift sshisft(.a(aAux2), .clk(clk), .q(qAux2), .aOUT(aAux3), .qOUT(qAux3), .c6(
 counter cntUp(.clk(clk), .c_up(cSig[6]), .rst(rst), .clr(cSig[0]), .count_reg(counter), .count(counterAux));
 
 always @(posedge clk) begin
-$display("x=%b\ny=%b\n\nrst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b\n\n\n",X,Y,rst,activeREG,cSig,counterAux,aAux3,qAux3);
+//$display("x=%b\ny=%b\n\nrst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b\n\n\n",X,Y,rst,activeREG,cSig,counterAux,aAux3,qAux3);
     a <= aAux3;
     q <= qAux3;
     counter <= counterAux;
@@ -461,7 +461,7 @@ module divider_tb;
   // Stimulus
   initial begin
     // Initialize inputs
-    //$monitor("quatient = %b\nremainder = %b\n\n",quatient,remainder);
+    $monitor("quatient = %b\nremainder = %b\n\n",quatient,remainder);
     //x 0 0 0 10010 1100 0010
     //y 0 0 0 00000 1010 1100
     X = 32'd4802; // Example input value
