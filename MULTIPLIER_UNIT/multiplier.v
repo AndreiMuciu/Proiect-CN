@@ -7,7 +7,7 @@ module RCA(
   output overflw
 );
 wire [7:0] carry;
-
+//
 FAC FA0 (.A(A[0]), .B(B[0]), .cin(cin), .sum(sum[0]), .cout(carry[0]));
 FAC FA1 (.A(A[1]), .B(B[1]), .cin(carry[0]), .sum(sum[1]), .cout(carry[1]));
 FAC FA2 (.A(A[2]), .B(B[2]), .cin(carry[1]), .sum(sum[2]), .cout(carry[2]));
@@ -400,7 +400,8 @@ mux4to1 inst1(.data_in0(m), .data_in1(twoM), .data_in2(threeM), .data_in3(fourM)
                 );
 mux2to1A selectFinal(.data_in0(a), .data_in1(aux2), .select(c7), .data_out(sum3));
 always @* begin
-//$display("%b",a);
+//if(c7)begin
+//$display("op=%b\nthreeM=%b",aux,threeM);end
     newa <= sum3;
 end   
 endmodule
@@ -499,7 +500,7 @@ lshift inst(.a(aAux), .clk(clk), .q(q), .qNeg(qNegREG), .aOUT(aAux2), .qOUT(qAux
 counter inst0(.clk(clk), .c_up(cSig[5]), .rst(rst), .clr(cSig[0]), .count_reg(counter), .count(counterAux));
 
 always @(posedge clk) begin
-//$display("rst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b\n\n",rst,activeREG,cSig,counterAux,aAux2,qAux);
+//$display("x=%b\ny=%b\n\nrst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b qNeg=%b\n\n\n",X,Y,rst,activeREG,cSig,counterAux,aAux2,qAux,qNeg);
     a <= aAux2;
     q <= qAux;qNegREG<=qNeg;
     counter <= counterAux;
@@ -528,8 +529,8 @@ module multiplier_tb;
     $monitor("product = %b", product);
     //x 0 0 0 0100 1000
     //y 0 0 0 0101 1001
-    X = 32'd72; // Example input value
-    Y = 32'd89; // Example input value
+    X = 32'd172; // Example input value
+    Y = 32'd172; // Example input value
     enable=1'b1;
     // Wait some time
     #1310;
