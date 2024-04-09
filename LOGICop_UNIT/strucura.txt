@@ -3,12 +3,10 @@ de shiftare st
 de shiftare de
 de and
 de or
-ele vor scoate in acelasi timp rezultatul ,pe acelasi clk adica si astea 4 vor intra intr u  mux (4to1) la care semnalul de selectie va fii
-sel[0]=formula care v am scris o pe foaie
-sel[1]=formula care v am scris o pe foaie
+ele vor scoate in acelasi timp rezultatul pe 67de b !!! ,pe acelasi clk 
 
-si ce va scoate muxul va fii pe 67b si atat,ca dupa variabila asta v a intra in tr un mux mare impreuna cu rez de la celelalte unuitati,iar selectorul la acest mux va fii op pe 4 b
+astea 4 rezultate vor intra in muxul principal impreuna cu rez de la celelalte unitati(mutlitplier,devider,adder/subtr),iar selectorul la acest mux va fii op pe 4 b
 
-practic unitatea asta de op logice va scaote un nsinugr output ,adica op logica care se vrea
+practic unitatea asta de op logice va scaote 4 outputuri ,corepsondent fiecqarei op logice
 
 aveti descris totul pe foaie ,succes;)
