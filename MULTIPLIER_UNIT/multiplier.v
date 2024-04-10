@@ -431,8 +431,9 @@ mux2to1A inst1(.data_in0(a), .data_in1(aOUTR), .select(c5), .data_out(aux1));
 mux2to1B inst2(.data_in0(q), .data_in1(qOUTR), .select(c5), .data_out(aux2));
 
 always @* begin
-aOUT=aux1;qOUT=aux2;qNegOUT=(c5&q[2])|(~c5&qNeg);
+aOUT=aux1;qOUT=aux2;qNegOUT=qNeg;
 if(c5)begin
+qNegOUT=q[2];
 aOUT[33:31]={a[33], a[33], a[33]};
 qOUT[32:30]={a[2], a[1], a[0]}; 
 end
@@ -495,7 +496,7 @@ end
 
 controlUnit reff1(.clk(clk), .rst_b(rst), .START(activeREG), .cnt(counter), .w(q[2]), .x(q[1]), .y(q[0]), .z(qNegREG), .cSig(cSig));
 
-operations op(.m(m), .clk(clk), .a(a), .cSig({cSig[2],cSig[3],cSig[4]}), .newa(aAux), .c7(cSig[7]));
+operations op(.m(m), .clk(clk), .a(a), .cSig({cSig[4],cSig[3],cSig[2]}), .newa(aAux), .c7(cSig[7]));
 lshift inst(.a(aAux), .clk(clk), .q(q), .qNeg(qNegREG), .aOUT(aAux2), .qOUT(qAux), .qNegOUT(qNeg), .c5(cSig[5]));
 counter inst0(.clk(clk), .c_up(cSig[5]), .rst(rst), .clr(cSig[0]), .count_reg(counter), .count(counterAux));
 
