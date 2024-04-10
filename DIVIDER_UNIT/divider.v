@@ -400,7 +400,8 @@ input [31:0] X,Y,
 input clk,
 input active,//formula lui OP
 output reg [66:0] quatient,//Q
-output reg [32:0] remainder//A
+output reg [32:0] remainder,//A
+output reg suff
 );
 reg [32:0] a;
 reg [31:0] q;
@@ -417,6 +418,7 @@ reg rst=0,sec=0;
 
 always @(posedge clk) begin
     if(!rst) begin
+    suff<=0;
     a <= 33'd0;
     counter <= 5'd0;
     q <= X;
@@ -433,11 +435,11 @@ rshift sshisft(.a(aAux2), .clk(clk), .q(qAux2), .aOUT(aAux3), .qOUT(qAux3), .c6(
 counter cntUp(.clk(clk), .c_up(cSig[6]), .rst(rst), .clr(cSig[0]), .count_reg(counter), .count(counterAux));
 
 always @(posedge clk) begin
-//$display("x=%b\ny=%b\n\nrst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b\n\n\n",X,Y,rst,activeREG,cSig,counterAux,aAux3,qAux3);
+//$display("x=%b\ny=%b\n\nrst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b\n\nsuff=%b\n",X,Y,rst,activeREG,cSig,counterAux,aAux3,qAux3,suff);
     a <= aAux3;
     q <= qAux3;
     counter <= counterAux;
-    if(cSig[7])activeREG=0;
+    if(cSig[7])begin activeREG=0; suff=1; end
     quatient<= {{35{q[31]}},q};
     remainder<=a;
     rst=sec;
@@ -451,17 +453,18 @@ module divider_tb;
   
   reg [31:0] X,Y;
   reg clk,enable;
+  wire suff;
   wire [66:0] quatient;
   wire [32:0] remainder;
   
-  divider divider_inst (
+  divider divider_inst (.suff(suff), 
    .X(X),.Y(Y),.clk(clk),.active(enable),.quatient(quatient),.remainder(remainder)
   );
 
   // Stimulus
   initial begin
     // Initialize inputs
-    $monitor("quatient = %b\nremainder = %b\n\n",quatient,remainder);
+    $monitor("quatient = %b\nremainder = %b\nsuff=%b\n",quatient,remainder,suff);
     //x 0 0 0 10010 1100 0010
     //y 0 0 0 00000 1010 1100
     X = 32'd4802; // Example input value
