@@ -469,7 +469,8 @@ module multiplier(
 input [31:0] X,Y,
 input clk,
 input active,//formula lui OP
-output reg [66:0] product
+output reg [66:0] product,
+output reg suff
 );
 reg [33:0] a;
 reg [32:0] q;reg qNegREG;
@@ -486,6 +487,7 @@ reg rst=0,sec=0;
 
 always @(posedge clk) begin
     if(!rst) begin
+    suff<=0;
     a <= 34'd0;
     counter <= 4'd0;
     q <= {X[31], X};qNegREG<=0;
@@ -505,7 +507,7 @@ always @(posedge clk) begin
     a <= aAux2;
     q <= qAux;qNegREG<=qNeg;
     counter <= counterAux;
-    if(cSig[6])activeREG=0;
+    if(cSig[6])begin activeREG=0; suff=1; end
     product <= {a,q};
     rst=sec;
     sec=1;
@@ -519,15 +521,16 @@ module multiplier_tb;
   reg [31:0] X,Y;
   reg clk,enable;
   wire [66:0] product;
+  wire suff;
   
-  multiplier multiplier_inst (
+  multiplier multiplier_inst (.suff(suff),
    .X(X),.Y(Y),.clk(clk),.active(enable),.product(product)
   );
 
   // Stimulus
   initial begin
     // Initialize inputs
-    $monitor("product = %b", product);
+    $monitor("product = %b\nsuff=%b\n\n", product,suff);
     //x 0 0 0 0100 1000
     //y 0 0 0 0101 1001
     X = 32'd172; // Example input value
