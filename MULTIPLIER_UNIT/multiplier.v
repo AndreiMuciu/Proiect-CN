@@ -541,14 +541,15 @@ fshift finale(.clk(clk),.active(cSig[6])
 ,.a(aAux2),.q(qAux),.newa(aAux3),.newq(qAux2)
 );
 always @(posedge clk) begin
-//$display("x=%b\ny=%b\n\nrst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b qNeg=%b\n\n\n",X,Y,rst,activeREG,cSig,counterAux,aAux2,qAux,qNeg);
+  if(!activeREG)suff=1;
     a <= aAux3;
     q <= qAux2;qNegREG<=qNeg;
     counter <= counterAux;
-    if(cSig[6])begin activeREG=0; suff=1; end
+    if(cSig[6])activeREG=0;
     product <= {a,q};
     rst=sec;
     sec=1;
+    //$display("x=%b\ny=%b\n\nrst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b qNeg=%b\n\nsuff=%b\n",X,Y,rst,activeREG,cSig,counterAux,aAux2,qAux,qNeg,suff);
 end
 endmodule
 
@@ -568,7 +569,7 @@ module multiplier_tb;
   // Stimulus
   initial begin
     // Initialize inputs
-    $monitor("product = %b\nsuff=%b\n\n", product,suff);
+    //$monitor("product = %b\nsuff=%b\n\n", product,suff);
     //x 0 0 0 0100 1000
     //y 0 0 0 0101 1001
     X = 32'd172; // Example input value
