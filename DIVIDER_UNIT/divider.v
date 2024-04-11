@@ -153,6 +153,7 @@ FAC FAC21(.A(X3[32]), .B(Y3_xor_cin[32]), .cin(auxcout1), .sum(sum3[32]), .cout(
 FAC FAC22(.A(X3[33]), .B(Y3_xor_cin[33]), .cin(auxcout2), .sum(sum3[33]), .cout(cout3)); // Connect carry-out of FAC21 to cin of FAC2  
 endmodule
 
+//===========================================================================================
 
 module controlUnit(
 input clk,rst_b,
@@ -446,6 +447,8 @@ always @(posedge clk) begin
     sec=1;
 end
 endmodule
+
+
 
 
 
