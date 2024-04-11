@@ -1,5 +1,5 @@
 # add all Verilog source files, separated by spaces
-set sourcefiles {correctedAdunare.v}
+set sourcefiles {adderSubtr.v}
 
 # set name of the top module
 set topmodule CSkA_tb

@@ -452,6 +452,11 @@ endmodule
 
 
 
+
+
+
+
+
 module divider_tb;
   
   reg [31:0] X,Y;
@@ -467,7 +472,7 @@ module divider_tb;
   // Stimulus
   initial begin
     // Initialize inputs
-    $monitor("quatient = %b\nremainder = %b\nsuff=%b\n",quatient,remainder,suff);
+    //$monitor("quatient = %b\nremainder = %b\nsuff=%b\n",quatient,remainder,suff);
     //x 0 0 0 10010 1100 0010
     //y 0 0 0 00000 1010 1100
     X = 32'd4802; // Example input value

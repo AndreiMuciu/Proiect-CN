@@ -75,6 +75,7 @@ module FAC_Star(
   assign pi =A | B;
 endmodule
 
+//==========================================================================
 
 module makeXor #(
     parameter WIDTH = 32 
@@ -178,6 +179,11 @@ endmodule
 
 
 
+
+
+
+
+
 module CSkA_tb;
   
   // Inputs
@@ -191,9 +197,9 @@ module CSkA_tb;
   wire [66:0] sum;
   wire [32:0] sum2;
   wire [33:0] sum3;
-
+  wire suff;
   // Instantiate the CSkA module
-  CSkA CSkA_inst (
+  CSkA CSkA_inst (.suff(suff),
     .X(X),
     .Y(Y),
     .X2(X2),
@@ -212,7 +218,7 @@ module CSkA_tb;
   // Stimulus
   initial begin
     // Initialize inputs
-    $monitor("sum1 = %b, sum2 = %b,sum3 = %b", sum,sum2,sum3);
+   //$monitor("sum1 = %b, sum2 = %b,sum3 = %b", sum,sum2,sum3);
     X = 32'd578; // Example input value
     Y = 32'd678; // Example input value
     X2 = 33'd10; // Example input value
