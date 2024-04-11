@@ -20,6 +20,7 @@ FAC FA7 (.A(A[7]), .B(B[7]), .cin(carry[6]), .sum(sum[7]), .cout(cout));
 assign overflw=cout | carry[6];
 endmodule
 
+//==========================================================================
 
 module FAC(
   input A,
@@ -32,6 +33,7 @@ assign sum = A ^ B ^ cin;
 assign cout = (A & B) | (A & cin) | (B & cin);
 endmodule
 
+//==========================================================================
 
 module RCA_Star(
   input[7:0] A,
@@ -57,6 +59,7 @@ FAC_Star FAS7 (.A(A[7]), .B(B[7]), .cin(carry[6]), .sum(sum[7]), .cout(cout), .p
 assign pi = propagate[0] & propagate[1] & propagate[2] & propagate[3] & propagate[4] & propagate[5] & propagate[6] & propagate[7];
 endmodule
 
+//==========================================================================
 
 module FAC_Star(
   input A,
@@ -97,6 +100,7 @@ endgenerate
 assign aXor = temp_aXor;
 endmodule
 
+//==========================================================================
 
 module CSkA(
     //va trebui 1.x[32],y[32]-->sum[67](adunare)  2.x[33],y[33]-->sum[33](impartire)  3.x[34],y[34]-->sum[34](inmultire)
@@ -171,12 +175,6 @@ suff=1;
 endmodule
 
   
-  
-
-
-
-
-
 
 
 
