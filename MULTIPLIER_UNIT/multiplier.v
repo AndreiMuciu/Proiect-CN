@@ -157,7 +157,7 @@ endmodule
 module controlUnit(
 input clk,rst_b,
 input START,
-input [3:0] cnt,
+input [2:0] cnt,
 input w,x,y,z,
 output reg [7:0] cSig
 );
@@ -250,7 +250,7 @@ nxst=s12;
 end
 
 s12:begin
-if(cnt[0]&cnt[1]&cnt[2]&cnt[3])
+if(cnt[0]&cnt[1]&cnt[2])
 nxst=s13;
 else
 nxst=s3;
@@ -447,21 +447,57 @@ module counter (
     input c_up,     // Count up enable
     input rst,      // Reset input (active low)
     input clr,
-    input[3:0] count_reg,
-    output reg [3:0] count  // 8-bit counter output
+    input[2:0] count_reg,
+    output reg [2:0] count  // 8-bit counter output
 );
 // Define counter behavior
 always @(posedge c_up,posedge clr,negedge rst)begin
     if (!rst) begin
         // Reset the counter to 0 when rst is asserted (active low)
-        count <= 4'd0;
+        count <= 3'd0;
     end else if (clr) begin
         // Clear the counter to 0 when clr is asserted
-        count <= 4'd0;
+        count <= 3'd0;
     end else if (c_up) begin
         // Increment the counter if count up is enabled
         count <= count_reg + 1;
     end
+end
+endmodule
+
+//=================================================================================
+
+module fshift(
+input clk,
+input active,
+input [33:0] a,
+input [32:0] q, 
+output reg [33:0] newa,
+output reg [32:0] newq
+);
+wire [33:0] aOUTR;
+wire [33:0] aux1;
+wire [32:0] qOUTR;
+wire [32:0] aux2;
+
+assign aOUTR=a>>12;
+assign qOUTR=q>>12;
+
+mux2to1A inst1(.data_in0(a), .data_in1(aOUTR), .select(active), .data_out(aux1));
+mux2to1B inst2(.data_in0(q), .data_in1(qOUTR), .select(active), .data_out(aux2));
+
+always @* begin
+newa=aux1;newq=aux2;
+if(active)begin
+newa[33:22]={a[33], a[33], a[33],
+    a[33], a[33], a[33],
+    a[33], a[33], a[33],a[33],a[33],a[33]
+};
+newq[32:21]={a[11],a[10], a[9], a[8],
+a[7], a[6], a[5],
+    a[4], a[3], a[2], a[1],a[0]
+}; 
+end
 end
 endmodule
 
@@ -475,12 +511,12 @@ output reg suff
 reg [33:0] a;
 reg [32:0] q;reg qNegREG;
 reg [33:0] m;
-reg [3:0] counter;
+reg [2:0] counter;
 reg activeREG;
 
-wire [33:0] aAux,aAux2;
-wire [32:0] qAux;wire qNeg;
-wire [3:0] counterAux;
+wire [33:0] aAux,aAux2,aAux3;
+wire [32:0] qAux,qAux2;wire qNeg;
+wire [2:0] counterAux;
 wire [7:0] cSig;
 
 reg rst=0,sec=0;
@@ -489,7 +525,7 @@ always @(posedge clk) begin
     if(!rst) begin
     suff<=0;
     a <= 34'd0;
-    counter <= 4'd0;
+    counter <= 3'd0;
     q <= {X[31], X};qNegREG<=0;
     m <= {{2{Y[31]}}, Y};
      activeREG <= active; 
@@ -501,11 +537,13 @@ controlUnit reff1(.clk(clk), .rst_b(rst), .START(activeREG), .cnt(counter), .w(q
 operations op(.m(m), .clk(clk), .a(a), .cSig({cSig[4],cSig[3],cSig[2]}), .newa(aAux), .c7(cSig[7]));
 lshift inst(.a(aAux), .clk(clk), .q(q), .qNeg(qNegREG), .aOUT(aAux2), .qOUT(qAux), .qNegOUT(qNeg), .c5(cSig[5]));
 counter inst0(.clk(clk), .c_up(cSig[5]), .rst(rst), .clr(cSig[0]), .count_reg(counter), .count(counterAux));
-
+fshift finale(.clk(clk),.active(cSig[6])
+,.a(aAux2),.q(qAux),.newa(aAux3),.newq(qAux2)
+);
 always @(posedge clk) begin
 //$display("x=%b\ny=%b\n\nrst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b qNeg=%b\n\n\n",X,Y,rst,activeREG,cSig,counterAux,aAux2,qAux,qNeg);
-    a <= aAux2;
-    q <= qAux;qNegREG<=qNeg;
+    a <= aAux3;
+    q <= qAux2;qNegREG<=qNeg;
     counter <= counterAux;
     if(cSig[6])begin activeREG=0; suff=1; end
     product <= {a,q};
