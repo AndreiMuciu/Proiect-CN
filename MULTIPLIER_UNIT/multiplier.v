@@ -18,6 +18,9 @@ FAC FA6 (.A(A[6]), .B(B[6]), .cin(carry[5]), .sum(sum[6]), .cout(carry[6]));
 FAC FA7 (.A(A[7]), .B(B[7]), .cin(carry[6]), .sum(sum[7]), .cout(cout));
 assign overflw=cout | carry[6];
 endmodule
+
+//==========================================================================
+
 module FAC(
   input A,
   input B,
@@ -28,6 +31,9 @@ module FAC(
 assign sum = A ^ B ^ cin;
 assign cout = (A & B) | (A & cin) | (B & cin);
 endmodule
+
+//==========================================================================
+
 module RCA_Star(
   input[7:0] A,
   input[7:0] B,
@@ -50,6 +56,9 @@ FAC_Star FAS7 (.A(A[7]), .B(B[7]), .cin(carry[6]), .sum(sum[7]), .cout(cout), .p
 
 assign pi = propagate[0] & propagate[1] & propagate[2] & propagate[3] & propagate[4] & propagate[5] & propagate[6] & propagate[7];
 endmodule
+
+//==========================================================================
+
 module FAC_Star(
   input A,
   input B,
@@ -86,6 +95,9 @@ endgenerate
 // Assign the result to the output
 assign aXor = temp_aXor;
 endmodule
+
+//==========================================================================
+
 module CSkA(
     //va trebui 1.x[32],y[32]-->sum[67](adunare)  2.x[33],y[33]-->sum[33](impartire)  3.x[34],y[34]-->sum[34](inmultire)
     input [31:0] 	X,
@@ -153,6 +165,7 @@ FAC FAC21(.A(X3[32]), .B(Y3_xor_cin[32]), .cin(auxcout1), .sum(sum3[32]), .cout(
 FAC FAC22(.A(X3[33]), .B(Y3_xor_cin[33]), .cin(auxcout2), .sum(sum3[33]), .cout(cout3)); // Connect carry-out of FAC21 to cin of FAC2   
 endmodule
 
+//==========================================================================
 
 module controlUnit(
 input clk,rst_b,
@@ -408,7 +421,6 @@ endmodule
 
 //===========================================================================================
 
-
 module lshift(
 input c5,
 input clk,
@@ -501,6 +513,8 @@ end
 end
 endmodule
 
+//==========================================================================
+
 module multiplier(
 input [31:0] X,Y,
 input clk,
@@ -552,6 +566,8 @@ always @(posedge clk) begin
     //$display("x=%b\ny=%b\n\nrst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b qNeg=%b\n\nsuff=%b\n",X,Y,rst,activeREG,cSig,counterAux,aAux2,qAux,qNeg,suff);
 end
 endmodule
+
+
 
 
 
