@@ -55,6 +55,28 @@ always @* begin
 end
 endmodule
 
+//=========================================================================
+
+module mux2to1(
+input suff,
+    input [32:0] data_in0,
+    input [32:0] data_in1,
+    input select,
+    output reg [32:0] data_out
+);
+always @* begin
+    case (select)
+        1'b0: data_out = data_in0;
+        1'b1: if(suff)
+        data_out = data_in1;
+        else data_out = 33'd0; 
+        default: data_out = 33'd0; 
+    endcase
+end
+endmodule
+
+//==============================================================================
+
 module ArithmeticLogicUnit(
 input clk,
 input [4:0] op,
@@ -95,18 +117,26 @@ CSkA CSkA_inst (
   );
   
   divider divider_inst(
-   .X(X),.Y(Y),.clk(clk),.active(~op[4]&~op[3]&op[2]&~op[1]&~op[0]),.quatient(dividerUNIT),.remainder(remainder),.suff(suff3)
+   .X(X),.Y(Y),.clk(clk),.active(~op[4]&~op[3]&op[2]&~op[1]&~op[0]),.quatient(dividerUNIT),.remainder(remainderAux),.suff(suff3)
   );
 
   logicOp logic_inst(
      .X(X),.Y(Y), .shiftedR(shiftedR), .shiftedL(shiftedL), .andOp(andOp), .orOp(orOp), .xorOp(xorOp), .suff(suff4)
   );
   
-  
-
-always @(posedge clk) begin
-
+  mux9to1 mux_inst(
+  .data_in0(adderSubtrUNIT) .data_in1(adderSubtrUNIT), .data_in2(productUNIT),
+    .data_in3(dividerUNIT) .data_in4(shiftedL), .data_in5(shiftedR),
+      .data_in6(andOp) .data_in7(orOp), .data_in8(xorOp),
+      .suff({suff4,suff3,suff2.suff1}),
+      .select(op),
+      .data_out(resultAux)
+      );
+      
+  mux2to1(.data_in1(remainderAux), .data_in0(33'd0), .select(~op[4]&~op[3]&op[2]&~op[1]&~op[0]) .suff(suff4))
+      
+always @* begin
+result<=resultAux
+remainder<=remainderAux
 end
-
-
 endmodule
