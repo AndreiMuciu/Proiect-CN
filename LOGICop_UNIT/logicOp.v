@@ -3,145 +3,116 @@ module and_op(
     input [31:0] b,
     output [66:0] c
 );
-wire [66:0] aux;
 genvar i;
 generate 
     for(i = 0; i < 32; i = i + 1) begin
-        assign aux[i] = a[i] & b[i];
+        assign c[i] = a[i] & b[i];
     end
     for(i = 32; i < 67; i = i + 1) begin
-        assign aux[i] = 0;
+        assign c[i] = 0;
     end
 endgenerate
-assign c = aux;
 endmodule
+
+//====================================================
 
 module xor_op(
     input [31:0] a,
     input [31:0] b,
     output [66:0] c
 );
-wire [66:0] aux;
 genvar i;
 generate 
     for(i = 0; i < 32; i = i + 1) begin
-        assign aux[i] = a[i] ^ b[i];
+        assign c[i] = a[i] ^ b[i];
     end
     for(i = 32; i < 67; i = i + 1) begin
-        assign aux[i] = 0;
+        assign c[i] = 0;
     end
 endgenerate
-assign c = aux;
 endmodule
+
+//=====================================================
 
 module or_op(
     input [31:0] a,
     input [31:0] b,
     output [66:0] c
 );
-wire [66:0] aux;
 genvar i;
 generate 
     for(i = 0; i < 32; i = i + 1) begin
-        assign aux[i] = a[i] | b[i];
+        assign c[i] = a[i] | b[i];
     end
     for(i = 32; i < 67; i = i + 1) begin
-        assign aux[i] = 0;
+        assign c[i] = 0;
     end
 endgenerate
-assign c = aux;
 endmodule
 
-module lshift(
-  input wire clk,
-  input wire[31:0] data,
-  output reg[66:0] o
+//====================================================
+
+module logicOp(
+input [31:0] X,Y,
+output [66:0] shiftedRX,shiftedLX,
+output [66:0] shiftedRY,shiftedLY,
+output [66:0] andOp,orOp,xorOp,
+output suff
 );
-initial o = 67'b0;
-always@(posedge clk) begin
-    o<=data<<1;
+wire [66:0] X2,Y2;
+assign X2={{35{X[31]}},X};
+assign Y2={{35{Y[31]}},Y};
+
+assign shiftedLX=X2<<32;
+assign shiftedRX=X2>>32;
+
+assign shiftedLY=Y2<<32;
+assign shiftedRY=Y2>>32;
+
+and_op inst1(.a(X), .b(Y), .c(andOp));
+or_op inst2(.a(X), .b(Y), .c(orOp));
+xor_op inst3(.a(X), .b(Y), .c(xorOp));
+assign suff=1;
+endmodule;
+
+
+
+
+
+
+
+
+
+
+
+/*
+module logicOp_tb;
+reg [31:0] X,Y;reg clk;
+wire [66:0] shiftedRX,shiftedLX;
+wire [66:0] shiftedRY,shiftedLY;
+wire [66:0] andOp,orOp,xorOp;
+wire suff;
+
+  logicOp logic_inst(
+     .X(X),.Y(Y), 
+     .shiftedRY(shiftedRY), .shiftedLY(shiftedLY), 
+     .shiftedRX(shiftedRX), .shiftedLX(shiftedLX), 
+     .andOp(andOp), .orOp(orOp), .xorOp(xorOp), .suff(suff)
+  );
+
+initial begin
+    // Seteaz? valorile pentru x1, y1, x2, y2, x3 ?i y3
+    X = 32'b01000000000000010000000000000000;
+    Y = 32'b01010000000001010000000000000000;
+    // Afi?eaz? valorile rezultate
+    $monitor("RShiftX:%b\nLShiftX=%b\n\nRShiftY:%b\nLShiftY=%b\n\nand=%b\n or=%b\nxor=%b\nsuff=%b\n\n", shiftedRX,shiftedLX,shiftedRY,shiftedLY,andOp,orOp,xorOp,suff);
+end
+
+localparam run_cycle=10,cycles=65;
+initial begin
+  clk=1'b0;
+  repeat (cycles*2)
+#run_cycle clk=~clk;
 end
 endmodule
-
-module rshift(
-  input wire clk,
-  input wire[31:0] data,
-  output reg[66:0] o
-);
-initial o = 67'b0;
-always@(posedge clk) begin
-    o<=data>>1;
-end
-endmodule
-
-module op_tb;
-
-    // Declarațiile pentru intrări și ieșiri
-    reg [31:0] x1, y1, x2, y2, x3, y3;
-    wire [66:0] rez1, rez2, rez3;
-
-    // Instantierea modulelor
-    and_op inst1 (.a(x1), .b(y1), .c(rez1));
-    or_op inst2 (.a(x2), .b(y2), .c(rez2));
-    xor_op inst3 (.a(x3), .b(y3), .c(rez3));
-
-    // Bloc initial pentru setarea intrărilor și afișarea ieșirilor
-    initial begin
-        // Inițializarea valorilor pentru x1, y1, x2, y2, x3 și y3
-        x1 = 32'b00000000000000001111111111111111;
-        y1 = 32'b11111111111111110000000000000000;
-        x2 = 32'b00000000000000001111111111111111;
-        y2 = 32'b11111111111111110000000000000000;
-        x3 = 32'b00000000000000001111111111111111;
-        y3 = 32'b11111111111111111000000000000000;
-
-        // Afișează valorile rezultate după o perioadă de așteptare
-        #10;  // Așteaptă 10 ns pentru a permite propagarea semnalelor
-        $display("AND: rez1 = %b", rez1);
-        $display("OR: rez2 = %b", rez2);
-        $display("XOR: rez3 = %b", rez3);
-
-        // Terminarea simulării
-        #10;  // Așteaptă încă 10 ns înainte de a termina simularea
-        $finish;
-    end
-
-endmodule
-
-`timescale 1ns / 1ps
-
-module testbench;
-
-    reg clk;
-    reg [31:0] data;
-    wire [66:0] out_lshift;
-    wire [66:0] out_rshift;
-
-    // Instanțierea modulelor
-    lshift shift_left(.clk(clk), .data(data), .o(out_lshift));
-    rshift shift_right(.clk(clk), .data(data), .o(out_rshift));
-
-    // Generarea semnalului de ceas
-    initial clk = 0;
-    
-    always #10 clk = !clk;  // Ceas cu periodă de 20ns
-
-    // Blocul initial pentru testare
-    initial begin
-        data = 32'hA5A5A5A5;  // Valoare inițială de test
-        #5;  // Așteaptă 5ns pentru a sincroniza cu frontul pozitiv al ceasului
-        #100;  // Așteaptă 100ns pentru a permite mai multe cicluri de ceas
-
-        data = 32'hFFFFFFFF;  // Schimbă valoarea datelor
-        #50;  // Mai multe cicluri de ceas
-
-        $finish;  // Termină simularea
-    end
-
-    // Monitorizează ieșirile
-    initial begin
-        $monitor("Time = %t, Data = %b, LShift Out = %b, RShift Out = %b",
-                 $time, data, out_lshift, out_rshift);
-    end
-
-endmodule
+*/
