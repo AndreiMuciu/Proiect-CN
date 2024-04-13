@@ -75,6 +75,7 @@ module FAC_Star(
   assign pi =A | B;
 endmodule
 
+//==========================================================================
 
 module makeXor #(
     parameter WIDTH = 32 
@@ -173,6 +174,19 @@ FAC FAC22(.A(X3[33]), .B(Y3_xor_cin[33]), .cin(auxcout2), .sum(sum3[33]), .cout(
 
 assign suff=1;
 endmodule
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -385,13 +399,13 @@ module operations(
     wire [33:0] threeM,aux,aux2,sum3;
     wire cout, cout2, cout3;
     wire [66:0] sum;
-    wire [32:0] sum2;
+    wire [32:0] sum2;wire suff;
 
 always @* begin 
 twoM=m<<1;
 fourM=m<<2;
 end
-CSkA CSkA_inst2 (
+CSkA CSkA_inst2 (.suff(suff),
     .X(32'b0),          // Set X to zero, unused
     .Y(32'b0),          // Set Y to zero, unused
     .X2(33'b0),            // Connect X2
@@ -407,7 +421,7 @@ CSkA CSkA_inst2 (
     .sum3(threeM)
 );
 mux4to1 inst1(.data_in0(m), .data_in1(twoM), .data_in2(threeM), .data_in3(fourM), .select({cSig[1],cSig[2]}), .data_out(aux));
-         CSkA CSkA_inst1 (
+         CSkA CSkA_inst1 (.suff(suff),
                     .X(32'b0),
                     .Y(32'b0),
                     .X2(33'b0),
@@ -581,375 +595,6 @@ endmodule
 
 
 
-module controlUnit2(
-input clk,rst_b,
-input START,
-input [4:0] cnt,
-input w,
-output reg [7:0] cSig
-);
-localparam s0 = 1;
-localparam s1 = 2;
-localparam s2 = 4;
-localparam s3 = 8;
-localparam s4 = 16;
-localparam s5 = 32;
-localparam s6 = 64;
-localparam s7 = 128;
-localparam s8 = 256;
-localparam s9 = 512;
-localparam s10 = 1024;
-
-reg [10:0] cst,nxst;
-
-always @* begin
-case(cst)
-s0:begin
-if(START==1'b1)
-nxst=s1;
-else
-nxst=s0;
-end
-
-s1:begin
-nxst=s2;
-end
-
-s2:begin
-nxst=s3;
-end
-
-s3:begin
-nxst=s4;
-end
-
-s4:begin
-nxst=s5;
-end
-
-s5:begin
-if(~w)
-nxst=s7;
-else
-nxst=s6;
-end
-
-s6:begin
-nxst=s8;
-end
-s7:begin
-nxst=s8;
-end
-
-s8:begin
-if(cnt[0]&cnt[1]&cnt[2]&cnt[3]&cnt[4])
-nxst=s10;
-else
-nxst=s9;
-end
-
-s9:begin
-nxst=s4;
-end
-
-s10:begin
-nxst=s0;
-end
-endcase
-end
-
-always @* begin
-    case (cst)
-        s1:cSig=8'd1;
-        s2:cSig=8'd2;
-        s3:cSig=8'd4;  
-        s4:cSig=8'd24;
-        s6:cSig=8'd8;
-        s7:cSig=8'd32;
-        s9:cSig=8'd64;
-        s10:cSig=8'd128;
-        default: cSig=8'd0;
-    endcase
-end
-
-always @(posedge clk,negedge rst_b) begin
-//$display("q = %b", cst);
-if(!rst_b)begin
-cst<=s0;
-end
-else
-cst<=nxst;       
-end
-endmodule
-
-//===========================================================================================
-
-module mux2to1A2(
-    input [32:0] data_in0,
-    input [32:0] data_in1,
-    input select,
-    output reg [32:0] data_out
-);
-always @* begin
-    case (select)
-        1'b0: data_out = data_in0;
-        1'b1: data_out = data_in1;
-        default: data_out = 33'bX; 
-    endcase
-end
-endmodule
-
-module mux2to1B2(
-    input [31:0] data_in0,
-    input [31:0] data_in1,
-    input select,
-    output reg [31:0] data_out
-);
-always @* begin
-    case (select)
-        1'b0: data_out = data_in0;
-        1'b1: data_out = data_in1;
-        default: data_out = 32'bX; 
-    endcase
-end
-endmodule
-
-//===========================================================================================
-
-module operations2(
-    input clk,
-    input [32:0] m,
-    input [32:0] a,
-    input [1:0] cSig,
-    output reg [32:0] newa
-);
-    wire cout, cout2, cout3;
-    wire [66:0] sum;
-    wire [32:0] sum2,aux;
-    wire [33:0] sum3;
-
-CSkA CSkA_inst2 (
-    .X(32'd0),          // Set X to zero, unused
-    .Y(32'd0),          // Set Y to zero, unused
-    .X2(a),            // Connect X2
-    .Y2(m),            // Connect Y2
-    .X3(34'd0),         // Set X3 to zero, unused
-    .Y3(34'd0),         // Set Y3 to zero, unused
-    .cin(cSig[1]),
-    .cout(cout),
-    .cout2(cout2),
-    .cout3(cout3),
-    .sum(sum),
-    .sum2(sum2),
-    .sum3(sum3)
-);
-mux2to1A2 selectFinal(.data_in0(a), .data_in1(sum2), .select(cSig[0]), .data_out(aux));
-
-always @* begin
-//if(cSig[0])begin
-//$display("sum=%b\n",sum2);end
-    newa <= aux;
-end   
-endmodule
-
-//===========================================================================================
-
-module checkNotRestore(
-input clk,
-input c5,
-input [31:0] q,
-output reg [31:0] newq
-);
-always @* begin
-newq<=q;
-if(c5)
-newq[0]<=c5;
-end
-endmodule
-
-//===========================================================================================
-
-module rshift(
-input c6,
-input clk,
-input [32:0] a,
-input [31:0] q,
-output reg [32:0] aOUT,
-output reg [31:0] qOUT
-);
-wire [32:0] aOUTR;
-wire [32:0] aux1;
-wire [31:0] qOUTR;
-wire [31:0] aux2;
-
-assign aOUTR=a<<1;
-assign qOUTR=q<<1;
-
-mux2to1A2 inst1(.data_in0(a), .data_in1(aOUTR), .select(c6), .data_out(aux1));
-mux2to1B2 inst2(.data_in0(q), .data_in1(qOUTR), .select(c6), .data_out(aux2));
-
-always @* begin
-aOUT=aux1;qOUT=aux2;
-if(c6)begin
-aOUT[0]=q[31];
-qOUT[0]=1'b0; 
-end
-end
-endmodule
-
-//===========================================================================================
-
-module counter2 (
-    input clk,      // Clock input
-    input c_up,     // Count up enable
-    input rst,      // Reset input (active low)
-    input clr,
-    input[4:0] count_reg,
-    output reg [4:0] count  // 8-bit counter output
-);
-// Define counter behavior
-always @(posedge c_up,posedge clr,negedge rst)begin
-    if (!rst) begin
-        // Reset the counter to 0 when rst is asserted (active low)
-        count <= 5'd0;
-    end else if (clr) begin
-        // Clear the counter to 0 when clr is asserted
-        count <= 5'd0;
-    end else if (c_up) begin
-        // Increment the counter if count up is enabled
-        count <= count_reg + 1;
-    end
-end
-endmodule
-
-module divider(
-input [31:0] X,Y,
-input clk,
-input active,//formula lui OP
-output reg [66:0] quatient,//Q
-output reg [32:0] remainder,//A
-output reg suff
-);
-reg [32:0] a;
-reg [31:0] q;
-reg [32:0] m;
-reg [4:0] counter;
-reg activeREG;
-
-wire [32:0] aAux,aAux2,aAux3;
-wire [31:0] qAux,qAux2,qAux3;
-wire [4:0] counterAux;
-wire [7:0] cSig;
-
-reg rst=0,sec=0;
-
-always @(posedge clk) begin
-    if(!rst) begin
-    suff<=0;
-    a <= 33'd0;
-    counter <= 5'd0;
-    q <= X;
-    m <= {Y[31], Y};
-     activeREG <= active; 
-    end
-end
-
-controlUnit2 fsm(.clk(clk), .rst_b(rst), .START(activeREG), .cnt(counter), .w(a[32]), .cSig(cSig));
-rshift fshift(.a(a), .clk(clk), .q(q), .aOUT(aAux), .qOUT(qAux), .c6(cSig[2]));
-operations2 op(.m(m), .clk(clk), .a(aAux), .cSig({cSig[4],cSig[3]}), .newa(aAux2));
-checkNotRestore check(.clk(clk), .q(qAux), .c5(cSig[5]), .newq(qAux2));
-rshift sshisft(.a(aAux2), .clk(clk), .q(qAux2), .aOUT(aAux3), .qOUT(qAux3), .c6(cSig[6]));
-counter2 cntUp(.clk(clk), .c_up(cSig[6]), .rst(rst), .clr(cSig[0]), .count_reg(counter), .count(counterAux));
-
-always @(posedge clk) begin
-//$display("x=%b\ny=%b\n\nrst=%b\nactiveREG=%b\ncSig=%b\ncounterAux=%b\na=%b\nq=%b\n\nsuff=%b\n",X,Y,rst,activeREG,cSig,counterAux,aAux3,qAux3,suff);
-    a <= aAux3;
-    q <= qAux3;
-    counter <= counterAux;
-    if(cSig[7])begin activeREG=0; suff=1; end
-    quatient<= {{35{q[31]}},q};
-    remainder<=a;
-    rst=sec;
-    sec=1;
-end
-endmodule
-
-module and_op(
-    input [31:0] a,
-    input [31:0] b,
-    output [66:0] c
-);
-genvar i;
-generate 
-    for(i = 0; i < 32; i = i + 1) begin
-        assign c[i] = a[i] & b[i];
-    end
-    for(i = 32; i < 67; i = i + 1) begin
-        assign c[i] = 0;
-    end
-endgenerate
-endmodule
-
-//====================================================
-
-module xor_op(
-    input [31:0] a,
-    input [31:0] b,
-    output [66:0] c
-);
-genvar i;
-generate 
-    for(i = 0; i < 32; i = i + 1) begin
-        assign c[i] = a[i] ^ b[i];
-    end
-    for(i = 32; i < 67; i = i + 1) begin
-        assign c[i] = 0;
-    end
-endgenerate
-endmodule
-
-//=====================================================
-
-module or_op(
-    input [31:0] a,
-    input [31:0] b,
-    output [66:0] c
-);
-genvar i;
-generate 
-    for(i = 0; i < 32; i = i + 1) begin
-        assign c[i] = a[i] | b[i];
-    end
-    for(i = 32; i < 67; i = i + 1) begin
-        assign c[i] = 0;
-    end
-endgenerate
-endmodule
-
-//====================================================
-
-module logicOp(
-input [31:0] X,Y,
-output [66:0] shiftedRX,shiftedLX,
-output [66:0] shiftedRY,shiftedLY,
-output [66:0] andOp,orOp,xorOp,
-output suff
-);
-wire [66:0] X2,Y2;
-assign X2={{35{X[31]}},X};
-assign Y2={{35{Y[31]}},Y};
-
-assign shiftedLX=X2<<32;
-assign shiftedRX=X2>>32;
-
-assign shiftedLY=Y2<<32;
-assign shiftedRY=Y2>>32;
-
-and_op inst1(.a(X), .b(Y), .c(andOp));
-or_op inst2(.a(X), .b(Y), .c(orOp));
-xor_op inst3(.a(X), .b(Y), .c(xorOp));
-assign suff=1;
-endmodule;
 
 
 
@@ -957,218 +602,39 @@ endmodule;
 
 
 
-
-
-
-
-
-
-
-module mux11to1(
-    input [66:0] data_in0,
-    input [66:0] data_in1,
-    input [66:0] data_in2,
-    input [66:0] data_in3,
-    input [66:0] data_in4,
-    input [66:0] data_in5,
-    input [66:0] data_in6,
-    input [66:0] data_in7,
-    input [66:0] data_in8,
-    input [66:0] data_in9,
-    input [66:0] data_in10,
-    input [4:0] select,
-    input [3:0] suff,
-    output reg [66:0] data_out
-);
-always @* begin
-    case (select)
-        5'd1: if(suff[0])
-        data_out = data_in0;
-        else data_out = 67'd0;
-        
-        5'd2: if(suff[0])
-        data_out = data_in1;
-        else data_out = 67'd0;
-        
-        5'd3: if(suff[1])
-        data_out = data_in2;
-        else data_out = 67'd0;
-        
-        5'd4: if(suff[2])
-        data_out = data_in3;
-        else data_out = 67'd0;
-        
-        5'd5: if(suff[3])
-        data_out = data_in4;
-        else data_out = 67'd0;
-        
-        5'd6:if(suff[3])
-        data_out = data_in5;
-        else data_out = 67'd0;
-        
-        5'd7: if(suff[3])
-        data_out = data_in6;
-        else data_out = 67'd0;
-        
-        5'd8: if(suff[3])
-        data_out = data_in7;
-        else data_out = 67'd0;
-        
-        5'd9: if(suff[3])
-        data_out = data_in8;
-        else data_out = 67'd0;
-        
-        5'd10: if(suff[3])
-        data_out = data_in9;
-        else data_out = 67'd0;
-        
-        5'd11: if(suff[3])
-        data_out = data_in10;
-        else data_out = 67'd0;
-        
-        default: data_out = 67'd0; // Handle invalid select values
-    endcase
-end
-endmodule
-
-//=========================================================================
-
-module mux2to1(
-input suff,
-    input [32:0] data_in0,
-    input [32:0] data_in1,
-    input select,
-    output reg [32:0] data_out
-);
-always @* begin
-    case (select)
-        1'b0: data_out = data_in0;
-        1'b1: if(suff)
-        data_out = data_in1;
-        else data_out = 33'd0; 
-        default: data_out = 33'd0; 
-    endcase
-end
-endmodule
-
-//==============================================================================
 /*
-0-N 1-S 2-D 3-M 4-D 5-shiftXL 6-shiftXR 7-shiftYL 8-shiftYR 9-andOp 10-orOp 11-xorOp
-*/
-
-module ArithmeticLogicUnit(
-input clk,
-input [4:0] op,
-input [31:0] X,Y,
-output reg [66:0] result,
-output reg [32:0] remainder 
-);
-wire [66:0] resultAux;
-wire [32:0] remainderAux;
-wire [32:0] remainderAux2;
-
-wire [32:0] sum2;
-wire [33:0] sum3;
-wire cout,cout2,cout3;
-
-wire suff1,suff2,suff3,suff4;
-wire [66:0] adderSubtrUNIT,productUNIT,dividerUNIT;
-wire [66:0] shiftedRX,shiftedLX;
-wire [66:0] shiftedRY,shiftedLY;
-wire [66:0] andOp,orOp,xorOp;
-
-CSkA CSkA_inst (
-    .X(X), 
-    .Y(Y),
-    .X2(33'd0),
-    .Y2(33'd0),
-    .X3(34'd0),
-    .Y3(34'd0),
-    .cin((~op[4])&(~op[3])&(~op[2])&(op[1])&(~op[0])),
-    .cout(cout),
-    .cout2(cout2),
-    .cout3(cout3),
-    .sum(adderSubtrUNIT),
-    .sum2(sum2),
-    .sum3(sum3),
-    .suff(suff1)
-  );
-  
-  multiplier multiplier_inst(
-   .X(X),.Y(Y),.clk(clk),.active((~op[4])&(~op[3])&(~op[2])&(op[1])&(op[0])),.product(productUNIT),.suff(suff2)
-  );
-  
-  divider divider_inst(
-   .X(X),.Y(Y),.clk(clk),.active((~op[4])&(~op[3])&(op[2])&(~op[1])&(~op[0])),.quatient(dividerUNIT),.remainder(remainderAux),.suff(suff3)
-  );
-
-  logicOp logic_inst(
-     .X(X), .Y(Y), 
-     .shiftedRY(shiftedRY), .shiftedLY(shiftedLY), 
-     .shiftedRX(shiftedRX), .shiftedLX(shiftedLX), 
-     .andOp(andOp), .orOp(orOp), .xorOp(xorOp), .suff(suff4)
-  );
-  
-  mux11to1 mux_inst(
-  .data_in0(adderSubtrUNIT), .data_in1(adderSubtrUNIT),
-  .data_in2(productUNIT), .data_in3(dividerUNIT), 
-  .data_in4(shiftedLX), .data_in5(shiftedRX),
-  .data_in6(shiftedLY), .data_in7(shiftedRY),
-  .data_in8(andOp), .data_in9(orOp), .data_in10(xorOp),
-      .suff({suff4,suff3,suff2,suff1}),
-      .select(op),
-      .data_out(resultAux)
-      );
-      
-  mux2to1 muxRemainder_inst(
-  .data_in0(33'd0), .data_in1(remainderAux), .select((~op[4])&(~op[3])&(op[2])&(~op[1])&(~op[0])), .suff(suff3),
-  .data_out(remainderAux2)
-  );
-      
-always @* begin
-result<=resultAux;
-remainder<=remainderAux2;
-end
-endmodule
-
-
-
-
-
-
-module alu_tb;
+module multiplier_tb;
   
   reg [31:0] X,Y;
-  reg clk;
-  wire [66:0] result;
-  wire [32:0] remainder;
-  reg [4:0] op;
+  reg clk,enable;
+  wire [66:0] product;
+  wire suff;
   
-  ArithmeticLogicUnit alu_inst(
-   .X(X), .Y(Y), .clk(clk), .op(op), .result(result), .remainder(remainder)
+  multiplier multiplier_inst (.suff(suff),
+   .X(X),.Y(Y),.clk(clk),.active(enable),.product(product)
   );
 
   // Stimulus
   initial begin
     // Initialize inputs
-    $monitor("result= %b\nremainder=%b\n\n\n", result,remainder);
-//11001000000
-//00010101100
-    X = 32'd1600; // Example input value
+    //$monitor("product = %b\nsuff=%b\n\n", product,suff);
+    //x 0 0 0 0100 1000
+    //y 0 0 0 0101 1001
+    X = 32'd172; // Example input value
     Y = 32'd172; // Example input value
-    op=5'd4;
+    enable=1'b1;
     // Wait some time
-    #4010;
+    #1310;
 
     // End simulation
     $finish;
   end
   
-localparam run_cycle=10,cycles=200;
+localparam run_cycle=10,cycles=65;
 initial begin
   clk=1'b0;
   repeat (cycles*2)
 #run_cycle clk=~clk;
 end
   
-endmodule
+endmodule*/
