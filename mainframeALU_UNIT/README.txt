@@ -40,4 +40,10 @@ LA REZULTAT SE VA RETINE EXACT REZULTATUL REAL FARA SA SE CORUPA(DE LA PREA MULT
 A NU SE FOLOSII NR PT OPERATII MAI MARI DECAT 2^30 
 INTERVALUL DE FUNCTIONARE, X,Y ∈ [-2147483647,+2147483647]
 
-                                            !!!!!!A NU SE MAI MODIFF NIMIC!!!!!!
+
+CREDITS:
+Mucioniu Andrei Constantin
+Sperneac Catalin
+Vesea Eduard
+
+                                                                       !!!!!!A NU SE MAI MODIFF NIMIC!!!!!!
