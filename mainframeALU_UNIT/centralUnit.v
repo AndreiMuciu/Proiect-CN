@@ -1,3 +1,4 @@
+//ADDER/SUBTR
 module RCA(
   input[7:0] A,
   input[7:0] B,
@@ -178,6 +179,22 @@ endmodule
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//MULTIPLIER
 module controlUnit(
 input clk,rst_b,
 input START,
@@ -581,6 +598,23 @@ endmodule
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//DIVIDER
 module controlUnit2(
 input clk,rst_b,
 input START,
@@ -874,6 +908,26 @@ always @(posedge clk) begin
 end
 endmodule
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//LOGICOP
 module and_op(
     input [31:0] a,
     input [31:0] b,
@@ -964,6 +1018,13 @@ endmodule;
 
 
 
+
+
+
+
+
+
+//mainframeALU
 module mux11to1(
     input [66:0] data_in0,
     input [66:0] data_in1,
@@ -1136,8 +1197,12 @@ endmodule
 
 
 
+
+
+
+
+//testbench
 module alu_tb;
-  
   reg [31:0] X,Y;
   reg clk;
   wire [66:0] result;
@@ -1152,23 +1217,24 @@ module alu_tb;
   initial begin
     // Initialize inputs
     $monitor("result= %b\nremainder=%b\n\n\n", result,remainder);
-//11001000000
-//00010101100
-    X = 32'd1600; // Example input value
+
+    X = 32'd1; // Example input value
     Y = 32'd172; // Example input value
-    op=5'd4;
+    op=5'd3;
     // Wait some time
+    
+    //wait=NC*2*run_cycle+10
     #4010;
 
     // End simulation
     $finish;
   end
-  
-localparam run_cycle=10,cycles=200;
+
+//cycles=NC
+localparam run_cycle=10,cycles=22;
 initial begin
   clk=1'b0;
   repeat (cycles*2)
 #run_cycle clk=~clk;
 end
-  
 endmodule
