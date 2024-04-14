@@ -26,8 +26,11 @@ totul se ruleza din fisierul "centralUnit.v" unde se configureaza:
 }
 
 ATENTIE:
-la op de inmultire si impartire sunt necesare un nr de cicluri de tact(se conf la intial begin la cycles=nrdeCiluriDorite)
+la op de inmultire si impartire sunt necesare un nr de cicluri de tact(se conf la intial begin la cycles=NC si dupa se schimba #wait-ul la formula NC*2*run_cycleTime+run_cycleTime)
 DACA NU SE DAU UN NR SUFICENT DE CICLURI DE TACT PT COMPUTAREA CORECTA A REZULTATULUI LA IESIRE SE VA RETINE REZ-0(PT A EVITA CORUPTIA)
+~pt inmutlire:avg cc ∈ [20,27]
+~pt impartire:fixed cc=162 pt ∀ ar fii X,Y ∈ [-2147483647,+2147483647]
+~pt adunare/scadere ,opLogice sunt necesare: cc=1
 
 DACA SE DAU UN NR SUFICEINT SAU CHIAR MAI MULT DECAT SUFICENT DE CICLURI DE TACT,
 LA REZULTAT SE VA RETINE EXACT REZULTATUL REAL FARA SA SE CORUPA(DE LA PREA MULTE CICLURI,dotat cu senzori de oprire a ciclurilor) 
