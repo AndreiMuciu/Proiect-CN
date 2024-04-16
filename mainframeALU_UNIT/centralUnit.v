@@ -1216,7 +1216,7 @@ module alu_tb;
   // Stimulus
   initial begin
     // Initialize inputs
-    $monitor("result= %b\nremainder=%b\n\n\n", result,remainder);
+    $monitor("result= %b\nremainder=%b\n\n\n", result,remainder);//sau %d pt decimal
 
     X = 32'd1; // Example input value
     Y = 32'd172; // Example input value
