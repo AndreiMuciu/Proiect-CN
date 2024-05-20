@@ -374,7 +374,79 @@ end
 endmodule
 
 //==========================================================================>
-                   
+module HitCase(
+  input clk, CacheFULL, signal,
+  input [1:0] SET,
+  input [6:0] index,
+  input [7:0] wordSEL,
+  input [523:0] cacheBANK_AIN [127:0],
+  input [523:0] cacheBANK_BIN [127:0],
+  input [523:0] cacheBANK_CIN [127:0],
+  input [523:0] cacheBANK_DIN [127:0],
+  output reg [523:0] cacheBANK_AOUT [127:0],
+  output reg [523:0] cacheBANK_BOUT [127:0],
+  output reg [523:0] cacheBANK_COUT [127:0],
+  output reg [523:0] cacheBANK_DOUT [127:0]
+);
+
+reg [1:0] SETage;
+integer i;
+
+  always @(posedge clk) begin
+  // Propagate inputs to outputs
+  for (i = 0; i < 128; i = i + 1) begin
+    cacheBANK_AOUT[i] = cacheBANK_AIN[i];
+    cacheBANK_BOUT[i] = cacheBANK_BIN[i];
+    cacheBANK_COUT[i] = cacheBANK_CIN[i];
+    cacheBANK_DOUT[i] = cacheBANK_DIN[i];
+  end
+
+  if (signal) begin
+    // Determine SETage based on the SET value
+    case (SET)
+      2'd0: SETage = cacheBANK_AOUT[index][4:3];
+      2'd1: SETage = cacheBANK_BOUT[index][4:3];
+      2'd2: SETage = cacheBANK_COUT[index][4:3];
+      2'd3: SETage = cacheBANK_DOUT[index][4:3];
+    endcase
+
+    // Update cacheBANK_XOUT based on SETage
+    if (cacheBANK_AOUT[index][4:3] < SETage && cacheBANK_AOUT[index][0] == 0)
+      cacheBANK_AOUT[index][4:3] = cacheBANK_AOUT[index][4:3] + 1;
+    if (cacheBANK_BOUT[index][4:3] < SETage && cacheBANK_BOUT[index][0] == 0)
+      cacheBANK_BOUT[index][4:3] = cacheBANK_BOUT[index][4:3] + 1;
+    if (cacheBANK_COUT[index][4:3] < SETage && cacheBANK_COUT[index][0] == 0)
+      cacheBANK_COUT[index][4:3] = cacheBANK_COUT[index][4:3] + 1;
+    if (cacheBANK_DOUT[index][4:3] < SETage && cacheBANK_DOUT[index][0] == 0)
+      cacheBANK_DOUT[index][4:3] = cacheBANK_DOUT[index][4:3] + 1;
+
+    // Update the selected SET
+    case (SET)
+      2'd0: begin
+        cacheBANK_AOUT[index][0] = 0;
+        cacheBANK_AOUT[index][4:3] = 2'd0;
+      end
+      2'd1: begin
+        cacheBANK_BOUT[index][0] = 0;
+        cacheBANK_BOUT[index][4:3] = 2'd0;
+      end
+      2'd2: begin
+        cacheBANK_COUT[index][0] = 0;
+        cacheBANK_COUT[index][4:3] = 2'd0;
+      end
+      2'd3: begin
+        cacheBANK_DOUT[index][0] = 0;
+        cacheBANK_DOUT[index][4:3] = 2'd0;
+      end
+    endcase
+    $display("word found in cache,CACHE HIT   data selected is %d",wordSEL);
+  end
+end
+
+endmodule
+
+//==========================================================================>
+
 //CACHE CENTRAL UNIT
 module centralUnit(
 input [19:0] adressWord,
@@ -389,6 +461,10 @@ reg [523:0] cacheBANK_A [127:0];
 reg [523:0] cacheBANK_B [127:0];
 reg [523:0] cacheBANK_C [127:0];
 reg [523:0] cacheBANK_D [127:0];
+wire [523:0] cacheBANK_Aaux [127:0];
+wire [523:0] cacheBANK_Baux [127:0];
+wire [523:0] cacheBANK_Caux [127:0];
+wire [523:0] cacheBANK_Daux [127:0];
 
 reg CacheHIT,CacheFULL;
 reg [1:0] SET;
@@ -410,10 +486,9 @@ integer i, j;
   end
       /*
       //cache test for line1 word8 wordOffB=0
-      //cacheBANK_D[1][1]<=1'b1;cacheBANK_D[1][523:460]<=64'hFFFFFFFFFFFFFFFF;
+      //cacheBANK_D[1][1]<=1'b1;cacheBANK_D[1][523:460]<=64'hFFFFFFFFFFFFFFFF;cacheBANK_D[1][4:3]<=2'd2;
       //cacheBANK_A[1][0]<=1'b0;cacheBANK_B[1][0]<=1'b0;cacheBANK_C[1][0]<=1'b0;cacheBANK_D[1][0]<=1'b0;
-      //cacheBANK_D[1][4:3]<=3;
-      */ 
+      */
     end
 end
 
@@ -422,10 +497,28 @@ detectBlockInCache detect(.clk(clk), .adressWord(adressWord), .signal(cSig[1]),
                           .cacheBANK_A(cacheBANK_A), .cacheBANK_B(cacheBANK_B), .cacheBANK_C(cacheBANK_C), .cacheBANK_D(cacheBANK_D),
                           .CacheHIT_IN(CacheHIT), .wordSEL_IN(wordSEL), .CacheFULL_IN(CacheFULL), .SET_IN(SET),
                           .CacheHIT_OUT(CacheHITaux), .wordSEL_OUT(wordSELaux), .CacheFULL_OUT(CacheFULLaux), .SET_OUT(SETaux));
+  
+  HitCase hitfct(.clk(clk), .CacheFULL(CacheFULLaux), .SET(SETaux), .signal(cSig[2]), 
+                 .index(adressWord[12:6]), .wordSEL(wordSELaux), 
+                 .cacheBANK_AIN(cacheBANK_A), .cacheBANK_BIN(cacheBANK_B),
+                 .cacheBANK_CIN(cacheBANK_C), .cacheBANK_DIN(cacheBANK_D),
+                 .cacheBANK_AOUT(cacheBANK_Aaux), .cacheBANK_BOUT(cacheBANK_Baux),
+                 .cacheBANK_COUT(cacheBANK_Caux), .cacheBANK_DOUT(cacheBANK_Daux));
+
+
 //...other functions,to be written
 
-always @(posedge clk) begin
-  $monitor("rst=%b  cSig=%b  HIT=%b  wordSEL=%d  SET=%b  FULL=%b",rst,cSig,CacheHIT,wordSELOUT,SET,CacheFULL);
+   always @(posedge clk) begin
+  //$monitor("rst=%b  cSig=%b  HIT=%b  wordSEL=%d  SET=%b  FULL=%b",rst,cSig,CacheHIT,wordSELOUT,SET,CacheFULL);
+
+    for (i = 0; i < 128; i = i + 1) begin
+      cacheBANK_A[i] <= cacheBANK_Aaux[i];
+      cacheBANK_B[i] <= cacheBANK_Baux[i];
+      cacheBANK_C[i] <= cacheBANK_Caux[i];
+      cacheBANK_D[i] <= cacheBANK_Daux[i];
+    end
+     
+    
     if(cSig[6] | cSig[2] | cSig[0])begin
     wordSEL<=8'd0; CacheHIT<=0;CacheFULL<=0;SET<=2'd0;//nu reinit niciun bank de cache
     end
