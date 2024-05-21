@@ -379,7 +379,7 @@ endmodule
 //==========================================================================>
 
 module ReadHit(
-  input clk, CacheFULL, signal,
+  input clk, CacheFULL,signal,misscase,
   input [1:0] SET,
   input [6:0] index,
   input [7:0] wordSEL,
@@ -443,7 +443,10 @@ integer i;
         cacheBANK_DOUT[index][4:3] = 2'd0;
       end
     endcase
+    if(!misscase)
     $display("word found in cache,CACHE HIT   data selected is %d",wordSEL);
+    else
+    $display("word found in cache,FETCHED AFTER MISS   data selected is %d",wordSEL);
   end
 end
 endmodule
@@ -690,7 +693,7 @@ always @* begin
     cacheBANK_COUT[i] = cacheBANK_CIN[i];
     cacheBANK_DOUT[i] = cacheBANK_DIN[i];
   end
-
+  
   if (signal) begin
     random_data=512'd0;
     // Generam 8 cuvinte fiecare retinand 8 nr(pe8b=1B)
@@ -772,6 +775,7 @@ wire [523:0] cacheBANK_Daux5 [127:0];
 reg CacheHIT,CacheFULL;
 reg [1:0] SET;
 reg [7:0] wordSEL;
+reg misscasereg;
 
 wire [6:0] cSig;
 wire CacheHITaux,CacheFULLaux;
@@ -782,7 +786,7 @@ reg rst=0,sec=0;
 integer i, j;
   always @(posedge clk) begin
     if(!rst) begin
-     wordSEL<=8'd0;CacheHIT<=0;CacheFULL<=0;SET<=2'd0;
+     wordSEL<=8'd0;CacheHIT<=0;CacheFULL<=0;SET<=2'd0;misscasereg<=1'b0;
   for (i = 0; i < 128; i = i + 1) begin
       cacheBANK_A[i]<=524'd0;cacheBANK_B[i]<=524'd0;cacheBANK_C[i]<=524'd0;cacheBANK_D[i]<=524'd0;
       cacheBANK_A[i][0]<=1'b1;cacheBANK_B[i][0]<=1'b1;cacheBANK_C[i][0]<=1'b1;cacheBANK_D[i][0]<=1'b1;
@@ -807,12 +811,12 @@ detectBlockInCache detect(.clk(clk), .adressWord(adressWord), .signal(cSig[1]),
                           .CacheHIT_OUT(CacheHITaux), .wordSEL_OUT(wordSELaux), 
                           .CacheFULL_OUT(CacheFULLaux), .SET_OUT(SETaux));
   
-ReadHit hitreadfct(.clk(clk), .CacheFULL(CacheFULLaux), .SET(SETaux), .signal(cSig[2]), 
-               .index(adressWord[12:6]), .wordSEL(wordSELaux), 
-               .cacheBANK_AIN(cacheBANK_A), .cacheBANK_BIN(cacheBANK_B), 
-               .cacheBANK_CIN(cacheBANK_C), .cacheBANK_DIN(cacheBANK_D),
-               .cacheBANK_AOUT(cacheBANK_Aaux), .cacheBANK_BOUT(cacheBANK_Baux),
-               .cacheBANK_COUT(cacheBANK_Caux), .cacheBANK_DOUT(cacheBANK_Daux));
+ReadHit hitreadfct(.clk(clk), .CacheFULL(CacheFULLaux), .SET(SETaux), .signal(cSig[2]), .misscase(misscasereg),
+                   .index(adressWord[12:6]), .wordSEL(wordSELaux), 
+                   .cacheBANK_AIN(cacheBANK_A), .cacheBANK_BIN(cacheBANK_B), 
+                   .cacheBANK_CIN(cacheBANK_C), .cacheBANK_DIN(cacheBANK_D),
+                   .cacheBANK_AOUT(cacheBANK_Aaux), .cacheBANK_BOUT(cacheBANK_Baux),
+                   .cacheBANK_COUT(cacheBANK_Caux), .cacheBANK_DOUT(cacheBANK_Daux));
   
 MissCaseNFULL misscasenfull(.clk(clk), .SET(SETaux), .signal(cSig[3]), 
                             .index(adressWord[12:6]),  
@@ -828,7 +832,7 @@ MissCaseFULL misscasefull(.clk(clk), .SET(SETaux), .signal(cSig[4]),
                           .cacheBANK_AOUT(cacheBANK_Aaux3), .cacheBANK_BOUT(cacheBANK_Baux3),
                           .cacheBANK_COUT(cacheBANK_Caux3), .cacheBANK_DOUT(cacheBANK_Daux3));
   
-Allocate alloc(.clk(clk), .SET(SETaux), .signal(cSig[5]), 
+Allocate alloc(.clk(clk), .SET(SETaux), .signal(cSig[5]),
                .index(adressWord[12:6]), .tag(adressWord[19:13]),
                .cacheBANK_AIN(cacheBANK_Aaux3), .cacheBANK_BIN(cacheBANK_Baux3),
                .cacheBANK_CIN(cacheBANK_Caux3), .cacheBANK_DIN(cacheBANK_Daux3),
@@ -837,7 +841,7 @@ Allocate alloc(.clk(clk), .SET(SETaux), .signal(cSig[5]),
   
 WriteHit hitwritefct(.clk(clk), .CacheFULL(CacheFULLaux), .SET(SETaux), .signal(cSig[6]), 
                 .index(adressWord[12:6]), .wordSEL(wordSELaux), .data_in(data_in),
-                     .blockOffset(adressWord[5:3]), .wordOffset(adressWord[2:0]),
+                .blockOffset(adressWord[5:3]), .wordOffset(adressWord[2:0]),
                 .cacheBANK_AIN(cacheBANK_Aaux4), .cacheBANK_BIN(cacheBANK_Baux4), 
                 .cacheBANK_CIN(cacheBANK_Caux4), .cacheBANK_DIN(cacheBANK_Daux4),
                 .cacheBANK_AOUT(cacheBANK_Aaux5), .cacheBANK_BOUT(cacheBANK_Baux5),
@@ -873,6 +877,10 @@ WriteHit hitwritefct(.clk(clk), .CacheFULL(CacheFULLaux), .SET(SETaux), .signal(
     wordSEL<=wordSELaux;
     wordSELOUT<=wordSEL;
     end
+     
+    if(cSig[5])begin misscasereg<=1;end
+    if(cSig[0])misscasereg<=0;
+    
     rst=sec;
     sec=1;
 end
@@ -904,24 +912,63 @@ module centralUnit_tb;
     //avgclocksADRESSMISS=10cc
     //1cc=2*10ns
     
-    //1request -write
-    adressWord=20'b00000000000001111000;//linia/index=1 word=8 wordOffB=0
-    EN=1'b1;
-    W_R=1'b1;
-    data_in=8'd72;
-    #50;//wait minclocksRST_EN cycles from start,for fsm to exit s0 state(independent on EN)     =2cc x 20ns +10buff
-    EN=1'b0;//then we rest the en until the next request
-    #210;//the cache will be quicker thatn this waitTime,causing it to wait for a next request  =(miss)10cc x 20ns +10 buff
-    
-    
     //1request -read
-    adressWord=20'b00000000000001111000;//linia/index=1 word=8 wordOffB=0
+    adressWord=20'b01000000000001111000;//linia/index=1 word=8 wordOffB=0
     EN=1'b1;
     W_R=1'b0;
     #50;//wait minclocksRST_EN cycles from start,for fsm to exit s0 state(independent on EN)     =2cc x 20ns +10buff
     EN=1'b0;//then we rest the en until the next request
     #210;//the cache will be quicker thatn this waitTime,causing it to wait for a next request  =(miss)10cc x 20ns +10 buff
     
+    $display("\n\n");
+    
+    //1request -read
+    adressWord=20'b00100000000001111000;//linia/index=1 word=8 wordOffB=0
+    EN=1'b1;
+    W_R=1'b0;
+    #50;//wait minclocksRST_EN cycles from start,for fsm to exit s0 state(independent on EN)     =2cc x 20ns +10buff
+    EN=1'b0;//then we rest the en until the next request
+    #210;//the cache will be quicker thatn this waitTime,causing it to wait for a next request  =(miss)10cc x 20ns +10 buff
+    
+    $display("\n\n");
+    
+    //1request -read
+    adressWord=20'b10000000000001111000;//linia/index=1 word=8 wordOffB=0
+    EN=1'b1;
+    W_R=1'b0;
+    #50;//wait minclocksRST_EN cycles from start,for fsm to exit s0 state(independent on EN)     =2cc x 20ns +10buff
+    EN=1'b0;//then we rest the en until the next request
+    #210;//the cache will be quicker thatn this waitTime,causing it to wait for a next request  =(miss)10cc x 20ns +10 buff
+    
+    $display("\n\n");
+    
+    //1request -read
+    adressWord=20'b00010000000001111000;//linia/index=1 word=8 wordOffB=0
+    EN=1'b1;
+    W_R=1'b0;
+    #50;//wait minclocksRST_EN cycles from start,for fsm to exit s0 state(independent on EN)     =2cc x 20ns +10buff
+    EN=1'b0;//then we rest the en until the next request
+    #210;//the cache will be quicker thatn this waitTime,causing it to wait for a next request  =(miss)10cc x 20ns +10 buff
+    
+    $display("\n\n");
+    
+    //1request -read
+    adressWord=20'b00100000000001111000;//linia/index=1 word=8 wordOffB=0
+    EN=1'b1;
+    W_R=1'b0;
+    #50;//wait minclocksRST_EN cycles from start,for fsm to exit s0 state(independent on EN)     =2cc x 20ns +10buff
+    EN=1'b0;//then we rest the en until the next request
+    #210;//the cache will be quicker thatn this waitTime,causing it to wait for a next request  =(miss)10cc x 20ns +10 buff
+    
+    $display("\nLRU case\n");
+    
+    //1request -read
+    adressWord=20'b11100000000001111000;//linia/index=1 word=8 wordOffB=0
+    EN=1'b1;
+    W_R=1'b0;
+    #50;//wait minclocksRST_EN cycles from start,for fsm to exit s0 state(independent on EN)     =2cc x 20ns +10buff
+    EN=1'b0;//then we rest the en until the next request
+    #210;//the cache will be quicker thatn this waitTime,causing it to wait for a next request  =(miss)10cc x 20ns +10 buff
     
     //another requests...
     
