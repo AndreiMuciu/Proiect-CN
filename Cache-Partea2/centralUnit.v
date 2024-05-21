@@ -1,3 +1,5 @@
+// Code your testbench here
+// or browse Examples
 //CACHE CONTROL UNIT
 module controlUnit(
 input clk,rst_b,
@@ -336,7 +338,7 @@ selectWord inst(.tag(adressWord[19:13]), .index(adressWord[12:6]), .set(set),
 
 mux4to1 blockSET(.data_in0(cacheBANK_A[adressWord[12:6]][523:12]), .data_in1(cacheBANK_B[adressWord[12:6]][523:12]),
                  .data_in2(cacheBANK_C[adressWord[12:6]][523:12]), .data_in3(cacheBANK_D[adressWord[12:6]][523:12]), 
-                 .select(set[3:0]), .data_out(selblk));
+                 .select(set), .data_out(selblk));
 mux8to1A wordSET(.data_in0(selblk[63:0]), .data_in1(selblk[127:64]), .data_in2(selblk[191:128]),
                  .data_in3(selblk[255:192]), .data_in4(selblk[319:256]), .data_in5(selblk[383:320]),
                  .data_in6(selblk[447:384]), .data_in7(selblk[511:448]), 
@@ -344,7 +346,8 @@ mux8to1A wordSET(.data_in0(selblk[63:0]), .data_in1(selblk[127:64]), .data_in2(s
 mux8to1B byteSET(.data_in0(selword[7:0]), .data_in1(selword[15:8]), .data_in2(selword[23:16]),
                  .data_in3(selword[31:24]), .data_in4(selword[39:32]), .data_in5(selword[47:40]),
                  .data_in6(selword[55:48]), .data_in7(selword[63:56]), 
-                 .select(adressWord[2:0]), .data_out(selbyte));                 
+                 .select(adressWord[2:0]), .data_out(selbyte));  
+
 mux2to1 byteSETFINAL(.data_in0(wordSEL_IN), .data_in1(selbyte), .select(signal), .data_out(wordSEL));
 //pt wordSEL
 
@@ -374,7 +377,8 @@ end
 endmodule
 
 //==========================================================================>
-module HitCase(
+
+module ReadHit(
   input clk, CacheFULL, signal,
   input [1:0] SET,
   input [6:0] index,
@@ -392,7 +396,7 @@ module HitCase(
 reg [1:0] SETage;
 integer i;
 
-  always @(posedge clk) begin
+  always @* begin
   // Propagate inputs to outputs
   for (i = 0; i < 128; i = i + 1) begin
     cacheBANK_AOUT[i] = cacheBANK_AIN[i];
@@ -442,6 +446,284 @@ integer i;
     $display("word found in cache,CACHE HIT   data selected is %d",wordSEL);
   end
 end
+endmodule
+
+//==========================================================================>
+
+module WriteHit(
+  input clk, CacheFULL, signal,
+  input [1:0] SET,
+  input [6:0] index,
+  input [2:0] blockOffset, wordOffset,
+  input [7:0] wordSEL, data_in,
+  input [523:0] cacheBANK_AIN [127:0],
+  input [523:0] cacheBANK_BIN [127:0],
+  input [523:0] cacheBANK_CIN [127:0],
+  input [523:0] cacheBANK_DIN [127:0],
+  output reg [523:0] cacheBANK_AOUT [127:0],
+  output reg [523:0] cacheBANK_BOUT [127:0],
+  output reg [523:0] cacheBANK_COUT [127:0],
+  output reg [523:0] cacheBANK_DOUT [127:0]
+);
+
+reg [1:0] SETage;
+integer i;
+integer byte_pos;
+
+always @* begin
+  // Propagate inputs to outputs
+  for (i = 0; i < 128; i = i + 1) begin
+    cacheBANK_AOUT[i] = cacheBANK_AIN[i];
+    cacheBANK_BOUT[i] = cacheBANK_BIN[i];
+    cacheBANK_COUT[i] = cacheBANK_CIN[i];
+    cacheBANK_DOUT[i] = cacheBANK_DIN[i];
+  end
+
+  if (signal) begin
+    // Determine SETage based on the SET value
+    case (SET)
+      2'd0: SETage = cacheBANK_AOUT[index][4:3];
+      2'd1: SETage = cacheBANK_BOUT[index][4:3];
+      2'd2: SETage = cacheBANK_COUT[index][4:3];
+      2'd3: SETage = cacheBANK_DOUT[index][4:3];
+    endcase
+
+    // Update cacheBANK_XOUT based on SETage
+    if (cacheBANK_AOUT[index][4:3] < SETage && cacheBANK_AOUT[index][0] == 0)
+      cacheBANK_AOUT[index][4:3] = cacheBANK_AOUT[index][4:3] + 1;
+    if (cacheBANK_BOUT[index][4:3] < SETage && cacheBANK_BOUT[index][0] == 0)
+      cacheBANK_BOUT[index][4:3] = cacheBANK_BOUT[index][4:3] + 1;
+    if (cacheBANK_COUT[index][4:3] < SETage && cacheBANK_COUT[index][0] == 0)
+      cacheBANK_COUT[index][4:3] = cacheBANK_COUT[index][4:3] + 1;
+    if (cacheBANK_DOUT[index][4:3] < SETage && cacheBANK_DOUT[index][0] == 0)
+      cacheBANK_DOUT[index][4:3] = cacheBANK_DOUT[index][4:3] + 1;
+
+    // Calculate byte position within the cache line
+    byte_pos = blockOffset * 64 + wordOffset * 8;
+
+    // Update the selected SET
+    case (SET)
+      2'd0: begin
+        cacheBANK_AOUT[index][0] = 0;
+        cacheBANK_AOUT[index][4:3] = 2'd0;
+        cacheBANK_AOUT[index][2] = (wordSEL != data_in) ? 1'b1 : 1'b0;
+        for (i = 0; i < 8; i = i + 1) begin
+          cacheBANK_AOUT[index][12+byte_pos + i] = (wordSEL != data_in) ? data_in[i] : wordSEL[i];
+        end
+      end
+      2'd1: begin
+        cacheBANK_BOUT[index][0] = 0;
+        cacheBANK_BOUT[index][4:3] = 2'd0;
+        cacheBANK_BOUT[index][2] = (wordSEL != data_in) ? 1'b1 : 1'b0;
+        for (i = 0; i < 8; i = i + 1) begin
+          cacheBANK_BOUT[index][12+byte_pos + i] = (wordSEL != data_in) ? data_in[i] : wordSEL[i];
+        end
+      end
+      2'd2: begin
+        cacheBANK_COUT[index][0] = 0;
+        cacheBANK_COUT[index][4:3] = 2'd0;
+        cacheBANK_COUT[index][2] = (wordSEL != data_in) ? 1'b1 : 1'b0;
+        for (i = 0; i < 8; i = i + 1) begin
+          cacheBANK_COUT[index][12+byte_pos + i] = (wordSEL != data_in) ? data_in[i] : wordSEL[i];
+        end
+      end
+      2'd3: begin
+        cacheBANK_DOUT[index][0] = 0;
+        cacheBANK_DOUT[index][4:3] = 2'd0;
+        cacheBANK_DOUT[index][2] = (wordSEL != data_in) ? 1'b1 : 1'b0;
+        for (i = 0; i < 8; i = i + 1) begin
+          cacheBANK_DOUT[index][12+byte_pos + i] = (wordSEL != data_in) ? data_in[i] : wordSEL[i];
+        end
+      end
+    endcase
+   
+  end
+end
+
+endmodule
+
+//==============================================================>
+
+module MissCaseNFULL(
+  input clk,signal,
+  input [1:0] SET,
+  input [6:0] index,
+  input [523:0] cacheBANK_AIN [127:0],
+  input [523:0] cacheBANK_BIN [127:0],
+  input [523:0] cacheBANK_CIN [127:0],
+  input [523:0] cacheBANK_DIN [127:0],
+  output reg [523:0] cacheBANK_AOUT [127:0],
+  output reg [523:0] cacheBANK_BOUT [127:0],
+  output reg [523:0] cacheBANK_COUT [127:0],
+  output reg [523:0] cacheBANK_DOUT [127:0]
+);
+
+integer i;
+
+  always @* begin
+  // Propagate inputs to outputs
+  for (i = 0; i < 128; i = i + 1) begin
+    cacheBANK_AOUT[i] = cacheBANK_AIN[i];
+    cacheBANK_BOUT[i] = cacheBANK_BIN[i];
+    cacheBANK_COUT[i] = cacheBANK_CIN[i];
+    cacheBANK_DOUT[i] = cacheBANK_DIN[i];
+  end
+
+  if (signal) begin
+    for (i = 0; i <SET; i = i + 1) begin
+      if(i==0)begin
+        cacheBANK_AOUT[index][4:3] = cacheBANK_AOUT[index][4:3] + 1;
+      end
+      if(i==1)begin
+        cacheBANK_BOUT[index][4:3] = cacheBANK_BOUT[index][4:3] + 1;
+      end
+      if(i==2)begin
+        cacheBANK_COUT[index][4:3] = cacheBANK_COUT[index][4:3] + 1;
+      end
+     end
+
+    // Update the selected SET
+    case (SET)
+      2'd0: begin
+        cacheBANK_AOUT[index][0] = 0;
+        cacheBANK_AOUT[index][4:3] = 2'd0;
+      end
+      2'd1: begin
+        cacheBANK_BOUT[index][0] = 0;
+        cacheBANK_BOUT[index][4:3] = 2'd0;
+      end
+      2'd2: begin
+        cacheBANK_COUT[index][0] = 0;
+        cacheBANK_COUT[index][4:3] = 2'd0;
+      end
+      2'd3: begin
+        cacheBANK_DOUT[index][0] = 0;
+        cacheBANK_DOUT[index][4:3] = 2'd0;
+      end
+    endcase
+  end
+end
+endmodule
+
+//==========================================================================>
+
+module MissCaseFULL(
+  input clk,signal,
+  input [1:0] SET,
+  input [6:0] index,
+  input [523:0] cacheBANK_AIN [127:0],
+  input [523:0] cacheBANK_BIN [127:0],
+  input [523:0] cacheBANK_CIN [127:0],
+  input [523:0] cacheBANK_DIN [127:0],
+  output reg [523:0] cacheBANK_AOUT [127:0],
+  output reg [523:0] cacheBANK_BOUT [127:0],
+  output reg [523:0] cacheBANK_COUT [127:0],
+  output reg [523:0] cacheBANK_DOUT [127:0]
+);
+
+integer i;
+
+  always @* begin
+  // Propagate inputs to outputs
+  for (i = 0; i < 128; i = i + 1) begin
+    cacheBANK_AOUT[i] = cacheBANK_AIN[i];
+    cacheBANK_BOUT[i] = cacheBANK_BIN[i];
+    cacheBANK_COUT[i] = cacheBANK_CIN[i];
+    cacheBANK_DOUT[i] = cacheBANK_DIN[i];
+  end
+
+  if (signal) begin
+    
+        cacheBANK_AOUT[index][4:3] = cacheBANK_AOUT[index][4:3] + 1;
+        cacheBANK_BOUT[index][4:3] = cacheBANK_BOUT[index][4:3] + 1;
+        cacheBANK_COUT[index][4:3] = cacheBANK_COUT[index][4:3] + 1;
+        cacheBANK_DOUT[index][4:3] = cacheBANK_DOUT[index][4:3] + 1;
+    
+    // Update the selected SET
+    case (SET)
+      2'd0: begin
+        cacheBANK_AOUT[index][0] = 0;
+        cacheBANK_AOUT[index][4:3] = 2'd0;
+      end
+      2'd1: begin
+        cacheBANK_BOUT[index][0] = 0;
+        cacheBANK_BOUT[index][4:3] = 2'd0;
+      end
+      2'd2: begin
+        cacheBANK_COUT[index][0] = 0;
+        cacheBANK_COUT[index][4:3] = 2'd0;
+      end
+      2'd3: begin
+        cacheBANK_DOUT[index][0] = 0;
+        cacheBANK_DOUT[index][4:3] = 2'd0;
+      end
+    endcase
+  end
+end
+endmodule
+
+//==========================================================================>
+
+module Allocate(
+  input clk, signal,
+  input [1:0] SET,
+  input [6:0] index, tag,
+  input [523:0] cacheBANK_AIN [127:0],
+  input [523:0] cacheBANK_BIN [127:0],
+  input [523:0] cacheBANK_CIN [127:0],
+  input [523:0] cacheBANK_DIN [127:0],
+  output reg [523:0] cacheBANK_AOUT [127:0],
+  output reg [523:0] cacheBANK_BOUT [127:0],
+  output reg [523:0] cacheBANK_COUT [127:0],
+  output reg [523:0] cacheBANK_DOUT [127:0]
+);
+
+integer i;
+reg [511:0] random_data;
+reg [7:0] random_byte;
+  
+always @* begin
+  // Propagate inputs to outputs
+  for (i = 0; i < 128; i = i + 1) begin
+    cacheBANK_AOUT[i] = cacheBANK_AIN[i];
+    cacheBANK_BOUT[i] = cacheBANK_BIN[i];
+    cacheBANK_COUT[i] = cacheBANK_CIN[i];
+    cacheBANK_DOUT[i] = cacheBANK_DIN[i];
+  end
+
+  if (signal) begin
+    random_data=512'd0;
+    // Generam 8 cuvinte fiecare retinand 8 nr(pe8b=1B)
+      for (i = 0; i < 64; i = i + 1) begin
+      random_byte = $urandom % 256; // Generate an 8-bit random number
+      random_data[i*8 +: 8] = random_byte; // Assign 8 bits at a time
+      end 
+
+    // Update the selected SET
+    case (SET)
+      2'd0: begin
+        cacheBANK_AOUT[index][1] = 1;
+        cacheBANK_AOUT[index][11:5] = tag;
+        cacheBANK_AOUT[index][523:12] = random_data;
+      end
+      2'd1: begin
+        cacheBANK_BOUT[index][1] = 1;
+        cacheBANK_BOUT[index][11:5] = tag;
+        cacheBANK_BOUT[index][523:12] = random_data;
+      end
+      2'd2: begin
+        cacheBANK_COUT[index][1] = 1;
+        cacheBANK_COUT[index][11:5] = tag;
+        cacheBANK_COUT[index][523:12] = random_data;
+      end
+      2'd3: begin
+        cacheBANK_DOUT[index][1] = 1;
+        cacheBANK_DOUT[index][11:5] = tag;
+        cacheBANK_DOUT[index][523:12] = random_data;
+      end
+    endcase
+  end
+end
 
 endmodule
 
@@ -450,7 +732,7 @@ endmodule
 //CACHE CENTRAL UNIT
 module centralUnit(
 input [19:0] adressWord,
-input [63:0] data_in,
+input [7:0] data_in,
 input clk,
 input EN,W_R,
 output reg [7:0] wordSELOUT
@@ -461,10 +743,31 @@ reg [523:0] cacheBANK_A [127:0];
 reg [523:0] cacheBANK_B [127:0];
 reg [523:0] cacheBANK_C [127:0];
 reg [523:0] cacheBANK_D [127:0];
+  
 wire [523:0] cacheBANK_Aaux [127:0];
 wire [523:0] cacheBANK_Baux [127:0];
 wire [523:0] cacheBANK_Caux [127:0];
 wire [523:0] cacheBANK_Daux [127:0];
+
+wire [523:0] cacheBANK_Aaux2 [127:0];
+wire [523:0] cacheBANK_Baux2 [127:0];
+wire [523:0] cacheBANK_Caux2 [127:0];
+wire [523:0] cacheBANK_Daux2 [127:0];
+
+wire [523:0] cacheBANK_Aaux3 [127:0];
+wire [523:0] cacheBANK_Baux3 [127:0];
+wire [523:0] cacheBANK_Caux3 [127:0];
+wire [523:0] cacheBANK_Daux3 [127:0];
+  
+wire [523:0] cacheBANK_Aaux4 [127:0];
+wire [523:0] cacheBANK_Baux4 [127:0];
+wire [523:0] cacheBANK_Caux4 [127:0];
+wire [523:0] cacheBANK_Daux4 [127:0];
+  
+wire [523:0] cacheBANK_Aaux5 [127:0];
+wire [523:0] cacheBANK_Baux5 [127:0];
+wire [523:0] cacheBANK_Caux5 [127:0];
+wire [523:0] cacheBANK_Daux5 [127:0];
 
 reg CacheHIT,CacheFULL;
 reg [1:0] SET;
@@ -492,32 +795,73 @@ integer i, j;
     end
 end
 
-controlUnit fsm(.clk(clk), .rst_b(rst), .EN(EN), .W_R(W_R), .CacheHIT(CacheHIT), .CacheFULL(CacheFULL), .cSig(cSig));
-detectBlockInCache detect(.clk(clk), .adressWord(adressWord), .signal(cSig[1]),
-                          .cacheBANK_A(cacheBANK_A), .cacheBANK_B(cacheBANK_B), .cacheBANK_C(cacheBANK_C), .cacheBANK_D(cacheBANK_D),
-                          .CacheHIT_IN(CacheHIT), .wordSEL_IN(wordSEL), .CacheFULL_IN(CacheFULL), .SET_IN(SET),
-                          .CacheHIT_OUT(CacheHITaux), .wordSEL_OUT(wordSELaux), .CacheFULL_OUT(CacheFULLaux), .SET_OUT(SETaux));
+controlUnit fsm(.clk(clk), .rst_b(rst), .EN(EN), 
+                .W_R(W_R), .CacheHIT(CacheHIT), 
+                .CacheFULL(CacheFULL), .cSig(cSig));
   
-  HitCase hitfct(.clk(clk), .CacheFULL(CacheFULLaux), .SET(SETaux), .signal(cSig[2]), 
-                 .index(adressWord[12:6]), .wordSEL(wordSELaux), 
-                 .cacheBANK_AIN(cacheBANK_A), .cacheBANK_BIN(cacheBANK_B),
-                 .cacheBANK_CIN(cacheBANK_C), .cacheBANK_DIN(cacheBANK_D),
-                 .cacheBANK_AOUT(cacheBANK_Aaux), .cacheBANK_BOUT(cacheBANK_Baux),
-                 .cacheBANK_COUT(cacheBANK_Caux), .cacheBANK_DOUT(cacheBANK_Daux));
+detectBlockInCache detect(.clk(clk), .adressWord(adressWord), .signal(cSig[1]),
+                          .cacheBANK_A(cacheBANK_A), .cacheBANK_B(cacheBANK_B), 
+                          .cacheBANK_C(cacheBANK_C), .cacheBANK_D(cacheBANK_D),
+                          .CacheHIT_IN(CacheHIT), .wordSEL_IN(wordSEL), 
+                          .CacheFULL_IN(CacheFULL), .SET_IN(SET),
+                          .CacheHIT_OUT(CacheHITaux), .wordSEL_OUT(wordSELaux), 
+                          .CacheFULL_OUT(CacheFULLaux), .SET_OUT(SETaux));
+  
+ReadHit hitreadfct(.clk(clk), .CacheFULL(CacheFULLaux), .SET(SETaux), .signal(cSig[2]), 
+               .index(adressWord[12:6]), .wordSEL(wordSELaux), 
+               .cacheBANK_AIN(cacheBANK_A), .cacheBANK_BIN(cacheBANK_B), 
+               .cacheBANK_CIN(cacheBANK_C), .cacheBANK_DIN(cacheBANK_D),
+               .cacheBANK_AOUT(cacheBANK_Aaux), .cacheBANK_BOUT(cacheBANK_Baux),
+               .cacheBANK_COUT(cacheBANK_Caux), .cacheBANK_DOUT(cacheBANK_Daux));
+  
+MissCaseNFULL misscasenfull(.clk(clk), .SET(SETaux), .signal(cSig[3]), 
+                            .index(adressWord[12:6]),  
+                            .cacheBANK_AIN(cacheBANK_Aaux), .cacheBANK_BIN(cacheBANK_Baux),
+                            .cacheBANK_CIN(cacheBANK_Caux), .cacheBANK_DIN(cacheBANK_Daux),
+                            .cacheBANK_AOUT(cacheBANK_Aaux2), .cacheBANK_BOUT(cacheBANK_Baux2),
+                            .cacheBANK_COUT(cacheBANK_Caux2), .cacheBANK_DOUT(cacheBANK_Daux2));
 
+MissCaseFULL misscasefull(.clk(clk), .SET(SETaux), .signal(cSig[4]), 
+                          .index(adressWord[12:6]),  
+                          .cacheBANK_AIN(cacheBANK_Aaux2), .cacheBANK_BIN(cacheBANK_Baux2),
+                          .cacheBANK_CIN(cacheBANK_Caux2), .cacheBANK_DIN(cacheBANK_Daux2),
+                          .cacheBANK_AOUT(cacheBANK_Aaux3), .cacheBANK_BOUT(cacheBANK_Baux3),
+                          .cacheBANK_COUT(cacheBANK_Caux3), .cacheBANK_DOUT(cacheBANK_Daux3));
+  
+Allocate alloc(.clk(clk), .SET(SETaux), .signal(cSig[5]), 
+               .index(adressWord[12:6]), .tag(adressWord[19:13]),
+               .cacheBANK_AIN(cacheBANK_Aaux3), .cacheBANK_BIN(cacheBANK_Baux3),
+               .cacheBANK_CIN(cacheBANK_Caux3), .cacheBANK_DIN(cacheBANK_Daux3),
+               .cacheBANK_AOUT(cacheBANK_Aaux4), .cacheBANK_BOUT(cacheBANK_Baux4),
+               .cacheBANK_COUT(cacheBANK_Caux4), .cacheBANK_DOUT(cacheBANK_Daux4));
+  
+WriteHit hitwritefct(.clk(clk), .CacheFULL(CacheFULLaux), .SET(SETaux), .signal(cSig[6]), 
+                .index(adressWord[12:6]), .wordSEL(wordSELaux), .data_in(data_in),
+                     .blockOffset(adressWord[5:3]), .wordOffset(adressWord[2:0]),
+                .cacheBANK_AIN(cacheBANK_Aaux4), .cacheBANK_BIN(cacheBANK_Baux4), 
+                .cacheBANK_CIN(cacheBANK_Caux4), .cacheBANK_DIN(cacheBANK_Daux4),
+                .cacheBANK_AOUT(cacheBANK_Aaux5), .cacheBANK_BOUT(cacheBANK_Baux5),
+                .cacheBANK_COUT(cacheBANK_Caux5), .cacheBANK_DOUT(cacheBANK_Daux5));
 
 //...other functions,to be written
 
    always @(posedge clk) begin
-  //$monitor("rst=%b  cSig=%b  HIT=%b  wordSEL=%d  SET=%b  FULL=%b",rst,cSig,CacheHIT,wordSELOUT,SET,CacheFULL);
-
+     //$monitor("rst=%b  cSig=%b  HIT=%b  wordSEL=%d  SET=%b  FULL=%b",rst,cSig,CacheHIT,wordSELaux,SET,CacheFULL);
+     /*$display("%d %d %d %d %d %d %d %d",
+           cacheBANK_A[adressWord[12:6]][467:460],
+           cacheBANK_A[adressWord[12:6]][475:468],
+           cacheBANK_A[adressWord[12:6]][483:476],
+           cacheBANK_A[adressWord[12:6]][491:484],
+           cacheBANK_A[adressWord[12:6]][499:492],
+           cacheBANK_A[adressWord[12:6]][507:500],
+           cacheBANK_A[adressWord[12:6]][515:508],
+           cacheBANK_A[adressWord[12:6]][523:516]);*/
     for (i = 0; i < 128; i = i + 1) begin
-      cacheBANK_A[i] <= cacheBANK_Aaux[i];
-      cacheBANK_B[i] <= cacheBANK_Baux[i];
-      cacheBANK_C[i] <= cacheBANK_Caux[i];
-      cacheBANK_D[i] <= cacheBANK_Daux[i];
+      cacheBANK_A[i] <= cacheBANK_Aaux5[i];
+      cacheBANK_B[i] <= cacheBANK_Baux5[i];
+      cacheBANK_C[i] <= cacheBANK_Caux5[i];
+      cacheBANK_D[i] <= cacheBANK_Daux5[i];
     end
-     
     
     if(cSig[6] | cSig[2] | cSig[0])begin
     wordSEL<=8'd0; CacheHIT<=0;CacheFULL<=0;SET<=2'd0;//nu reinit niciun bank de cache
@@ -546,7 +890,7 @@ endmodule
 
 module centralUnit_tb;
   reg [19:0] adressWord;
-  reg [63:0] data_in;
+  reg [7:0] data_in;
   reg clk;
   reg EN,W_R;
   wire [7:0] wordSELOUT;
@@ -560,7 +904,17 @@ module centralUnit_tb;
     //avgclocksADRESSMISS=10cc
     //1cc=2*10ns
     
-    //1request
+    //1request -write
+    adressWord=20'b00000000000001111000;//linia/index=1 word=8 wordOffB=0
+    EN=1'b1;
+    W_R=1'b1;
+    data_in=8'd72;
+    #50;//wait minclocksRST_EN cycles from start,for fsm to exit s0 state(independent on EN)     =2cc x 20ns +10buff
+    EN=1'b0;//then we rest the en until the next request
+    #210;//the cache will be quicker thatn this waitTime,causing it to wait for a next request  =(miss)10cc x 20ns +10 buff
+    
+    
+    //1request -read
     adressWord=20'b00000000000001111000;//linia/index=1 word=8 wordOffB=0
     EN=1'b1;
     W_R=1'b0;
@@ -568,12 +922,13 @@ module centralUnit_tb;
     EN=1'b0;//then we rest the en until the next request
     #210;//the cache will be quicker thatn this waitTime,causing it to wait for a next request  =(miss)10cc x 20ns +10 buff
     
-    //another requests.....
+    
+    //another requests...
     
     $finish;
   end
   
-  localparam run_cycle=10,cycles=50;
+  localparam run_cycle=10,cycles=1000;
 initial begin
   clk=1'b0;
   repeat (cycles*2)
